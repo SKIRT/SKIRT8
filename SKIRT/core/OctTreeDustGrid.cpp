@@ -1,0 +1,30 @@
+/*//////////////////////////////////////////////////////////////////
+////     The SKIRT project -- advanced radiative transfer       ////
+////       © Astronomical Observatory, Ghent University         ////
+///////////////////////////////////////////////////////////////// */
+
+#include "OctTreeDustGrid.hpp"
+#include "BaryOctTreeNode.hpp"
+
+//////////////////////////////////////////////////////////////////////
+
+TreeNode* OctTreeDustGrid::createRoot(const Box& extent)
+{
+    if (_useBarycentric)
+    {
+        return new BaryOctTreeNode(0, 0, extent);
+    }
+    else
+    {
+        return new OctTreeNode(0, 0, extent);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////
+
+bool OctTreeDustGrid::canUseDmibForSubdivide()
+{
+    return !_useBarycentric;
+}
+
+//////////////////////////////////////////////////////////////////////

@@ -1,0 +1,30 @@
+/*//////////////////////////////////////////////////////////////////
+////     The SKIRT project -- advanced radiative transfer       ////
+////       © Astronomical Observatory, Ghent University         ////
+///////////////////////////////////////////////////////////////// */
+
+#include "BaryOctTreeNode.hpp"
+#include "TreeNodeDensityCalculator.hpp"
+
+//////////////////////////////////////////////////////////////////////
+
+BaryOctTreeNode::BaryOctTreeNode(TreeNode* father, int id, const Box& extent)
+    : OctTreeNode(father, id, extent)
+{
+}
+
+//////////////////////////////////////////////////////////////////////
+
+TreeNode* BaryOctTreeNode::createNode(TreeNode* father, int id, const Box& extent)
+{
+    return new BaryOctTreeNode(father, id, extent);
+}
+
+//////////////////////////////////////////////////////////////////////
+
+void BaryOctTreeNode::createChildren(int id, const TreeNodeDensityCalculator* calc)
+{
+    createChildrenSplitPoint(id, calc->barycenter());
+}
+
+//////////////////////////////////////////////////////////////////////
