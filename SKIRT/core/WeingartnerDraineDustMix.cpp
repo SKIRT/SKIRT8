@@ -63,61 +63,66 @@ namespace
         return sum;
     }
 
-    // grain size distributions for Milky Way environment
+    // grain size distributions for Milky Way environment with R_V = 3.1
+    //   -> Table 1 p300 in Weingartner & Draine 2001, ApJ, 548, 296
+    //   -> Table 3 p787 in Li & Draine 2001, ApJ, 554, 778
     double dnda_gra_mwy(double a)
     {
-        const double C = 9.99e-12;      // C abundance in double log normal WD01a tabel 1 p300
-        const double at = 0.0107e-6;    // WD01a tabel 1 p300
-        const double ac = 0.428e-6;     // WD01a tabel 1 p300
-        const double alpha = -1.54;     // WD01a tabel 1 p300
-        const double beta = -0.165;     // WD01a tabel 1 p300
+        const double C = 9.99e-12;
+        const double at = 0.0107e-6;
+        const double ac = 0.428e-6;
+        const double alpha = -1.54;
+        const double beta = -0.165;
         return dnda_grasil(a, C, at, ac, alpha, beta);
     }
 
     double dnda_sil_mwy(double a)
     {
-        const double C = 1.00e-13;      // C abundance in double log normal WD01a tabel 1 p300
-        const double at = 0.164e-6;     // WD01a tabel 1 p300
-        const double ac = 0.1e-6;       // WD01a tabel 1 p300
-        const double alpha = -2.21;     // WD01a tabel 1 p300
-        const double beta = 0.300;      // WD01a tabel 1 p300
+        const double C = 1.00e-13;
+        const double at = 0.164e-6;
+        const double ac = 0.1e-6;
+        const double alpha = -2.21;
+        const double beta = 0.300;
         return dnda_grasil(a, C, at, ac, alpha, beta);
     }
 
     double dnda_pah_mwy(double a)
     {
-        const double sigma = 0.4;                // DL2001 II p786
-        const double a0[2] = {3.5e-10, 30e-10};  // DL2001 II p786 = 3.5A, 30A
-        const double bc[2] = {4.5e-5, 1.5e-5};   // DL2001 II p786 = 45ppm, 15ppm
+        const double sigma = 0.4;
+        const double a0[2] = {3.5e-10, 30e-10};
+        const double bc[2] = {4.5e-5, 1.5e-5};
         return 0.5 * dnda_pah(a, sigma, a0, bc); // 50% of the PAH grains are neutral, 50% are ionized
     }
 
     // grain size distributions for LMC environment
+    //   -> Line 2 of Table 3 p305 in Weingartner & Draine 2001, ApJ, 548, 296
+    //   -> For PAHs, use Milky Way values with 1/6 of total abundance
+    //      Line 2 of Table 3: b_C = 1.0   <--> Table 1 for R_V = 3.1: b_C = 6
     double dnda_gra_lmc(double a)
     {
-        const double C = 3.51e-15;      // C abundance in double log normal WD01a tabel 1 p300
-        const double at = 0.0980e-6;    // WD01a tabel 1 p300
-        const double ac = 0.641e-6;     // WD01a tabel 1 p300
-        const double alpha = -2.99;     // WD01a tabel 1 p300
-        const double beta = 2.46;       // WD01a tabel 1 p300
+        const double C = 3.51e-15;
+        const double at = 0.0980e-6;
+        const double ac = 0.641e-6;
+        const double alpha = -2.99;
+        const double beta = 2.46;
         return dnda_grasil(a, C, at, ac, alpha, beta);
     }
 
-    double dnda_sil_lmc(double a)
+    double dnda_sil_lmc(double a)       // Weingartner & Draine 2001, ApJ, 548, 296 -- Table 3 p305
     {
-        const double C = 1.78e-14;      // C abundance in double log normal WD01a tabel 1 p300
-        const double at = 0.184e-6;     // WD01a tabel 1 p300
-        const double ac = 0.1e-6;       // WD01a tabel 1 p300
-        const double alpha = -2.49;     // WD01a tabel 1 p300
-        const double beta = 0.345;      // WD01a tabel 1 p300
+        const double C = 1.78e-14;
+        const double at = 0.184e-6;
+        const double ac = 0.1e-6;
+        const double alpha = -2.49;
+        const double beta = 0.345;
         return dnda_grasil(a, C, at, ac, alpha, beta);
     }
 
-    double dnda_pah_lmc(double a)
+    double dnda_pah_lmc(double a)       // Weingartner & Draine 2001, ApJ, 548, 296 -- Table 3 p305
     {
-        const double sigma = 0.4;                // DL2001 II p786
-        const double a0[2] = {3.5e-10, 30e-10};  // DL2001 II p786 = 3.5A, 30A
-        const double bc[2] = {0.75e-5, 0.25e-5}; // DL2001 II p786
+        const double sigma = 0.4;                // Milky Way value
+        const double a0[2] = {3.5e-10, 30e-10};  // Milky Way values
+        const double bc[2] = {0.75e-5, 0.25e-5}; // 1/6 of Milky Way values
         return 0.5 * dnda_pah(a, sigma, a0, bc); // 50% of the PAH grains are neutral, 50% are ionized
     }
 }

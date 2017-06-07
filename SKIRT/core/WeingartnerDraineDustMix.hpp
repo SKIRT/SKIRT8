@@ -14,9 +14,10 @@
     realistic dust mixtures consisting of populations of graphite, silicate and PAH dust grains.
     The size distributions of each of these grains are fitted in such a way that they can reproduce
     the extinction curve of the Milky Way or the LMC. For details we refer to Weingartner & Draine
-    (2001, ApJ, 548, 296). The graphite, silicate, and PAH populations (for both neutral and
-    ionized PAHs) can be subdivided into \f$N_{\text{gra}}\f$, \f$N_{\text{sil}}\f$, and
-    \f$N_{\text{PAH}}\f$ subpopulations, each corresponding to a distinct grain size bin. */
+    (2001, ApJ, 548, 296) and Li & Draine (2001, ApJ, 554, 778). The graphite, silicate, and PAH
+    populations (for both neutral and ionized PAHs) can be subdivided into \f$N_{\text{gra}}\f$,
+    \f$N_{\text{sil}}\f$, and \f$N_{\text{PAH}}\f$ subpopulations, each corresponding to a distinct
+    grain size bin. */
 class WeingartnerDraineDustMix : public MultiGrainDustMix
 {
     /** The enumeration type indicating the environment for the Weingartner-Draine dust. */
