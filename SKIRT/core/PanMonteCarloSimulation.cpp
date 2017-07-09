@@ -33,7 +33,7 @@ void PanMonteCarloSimulation::setupSelfAfter()
 void PanMonteCarloSimulation::runSelf()
 {
     runStellarEmission();
-    if (_pds && _pds->hasDustEmission())
+    if (_pds && _pds->hasDustEmission() && _pds->dustDistribution()->mass() > 0)
     {
         if (_pds && _pds->includeSelfAbsorption()) runDustSelfAbsorption();
         runDustEmission();
@@ -104,9 +104,10 @@ void PanMonteCarloSimulation::runDustSelfAbsorption()
             // Check the criteria to terminate the self-absorption cycle:
             // - the total absorbed dust luminosity should change by less than epsmax compared to the previous cycle;
             // - the last stage must perform at least 2 cycles (to make sure that the energy is properly distributed)
+            // If the total absorbed dust luminosity is zero, then convergence is reached regardless of the above
             double eps = fabs((Labsdusttot-prevLabsdusttot)/Labsdusttot);
             prevLabsdusttot = Labsdusttot;
-            if ( (stage<Nstages-1 || cycle>1) && eps<stage_epsmax[stage])
+            if ( Labsdusttot<=0. || ((stage<Nstages-1 || cycle>1) && eps<stage_epsmax[stage]) )
             {
                 log()->info("Convergence reached; the last increase in the absorbed dust luminosity was "
                            + StringUtils::toString(eps*100, 'f', 2) + "%");
