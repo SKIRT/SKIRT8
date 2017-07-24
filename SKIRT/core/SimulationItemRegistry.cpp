@@ -61,6 +61,7 @@
 #include "FoamGeometryDecorator.hpp"
 #include "ForsteriteGrainComposition.hpp"
 #include "FrameInstrument.hpp"
+#include "FSPSVariableIMFSEDFamily.hpp"
 #include "FullInstrument.hpp"
 #include "GammaGeometry.hpp"
 #include "GaussianGeometry.hpp"
@@ -459,6 +460,7 @@ SimulationItemRegistry::SimulationItemRegistry(string version, string format)
     ItemRegistry::add<SEDFamily>();
     ItemRegistry::add<BruzualCharlotSEDFamily>();
     ItemRegistry::add<Starburst99SEDFamily>();
+    ItemRegistry::add<FSPSVariableIMFSEDFamily>();
     ItemRegistry::add<MappingsSEDFamily>();
 }
 
