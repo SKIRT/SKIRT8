@@ -72,6 +72,9 @@ void FSPSVariableIMFSEDFamily::setupSelfBefore()
         std::ifstream file = System::ifstream(filename);
         if (!file.is_open()) throw FATALERROR("Could not open the external resource file " + filename);
         for (size_t s=0; s<Nalpha; ++s) file >> _alphav[s];
+        // if needed, reverse the array so that the values are in increasing order
+        _alphaReversed = (_alphav[0] > _alphav[1]);
+        if (_alphaReversed) std::reverse(begin(_alphav), end(_alphav));
     }
     // --> metallicity (Z)
     {
@@ -120,8 +123,9 @@ void FSPSVariableIMFSEDFamily::setupSelfBefore()
 
 namespace
 {
-    // returns properly clipped left and right grid indices and fractional distance for a given coordinate value
-    void locateInGrid(const Array& grid, size_t N, double value, size_t& iL, size_t& iR, double& h)
+    // returns properly clipped left and right grid indices and fractional distance for a given coordinate value;
+    // if reversed is true; the indices are considered to be in reverse order
+    void locateInGrid(const Array& grid, size_t N, bool reversed, double value, size_t& iL, size_t& iR, double& h)
     {
         if (value <= grid[0])
         {
@@ -139,6 +143,12 @@ namespace
             iR = iL+1;
             h = (value-grid[iL])/(grid[iR]-grid[iL]);
         }
+
+        if (reversed)
+        {
+            iL = N - 1 - iL;
+            iR = N - 1 - iR;
+        }
     }
 }
 
@@ -149,9 +159,9 @@ Array FSPSVariableIMFSEDFamily::luminosities(double M, double Z, double t, doubl
     // find the appropriate indices in the respective grids for each parameter dimension
     size_t sL, sR, mL, mR, pL, pR;
     double ha, hZ, ht;
-    locateInGrid(_alphav, Nalpha, alpha, sL, sR, ha);
-    locateInGrid(_Zv,     NZ,     Z,     mL, mR, hZ);
-    locateInGrid(_tv,     Nt,     t,     pL, pR, ht);
+    locateInGrid(_alphav, Nalpha, _alphaReversed, alpha, sL, sR, ha);
+    locateInGrid(_Zv,     NZ,     false,          Z,     mL, mR, hZ);
+    locateInGrid(_tv,     Nt,     false,          t,     pL, pR, ht);
 
     // get the emissivity tables bracketing the requested slope and metallicity
     const ArrayTable<2>& jLLvv = getEmissivityTable(sL, mL);

@@ -110,6 +110,7 @@ private:
     WavelengthGrid* _lambdagrid{nullptr};
 
     // coordinate grid points along each dimension, loaded by constructor
+    bool _alphaReversed{false}; // true if the slope array has been reversed to have the values in increasing order
     Array _alphav;      // index s
     Array _Zv;          // index m
     Array _tv;          // index p
