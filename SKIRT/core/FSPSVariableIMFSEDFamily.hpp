@@ -25,7 +25,13 @@ class WavelengthGrid;
 
     The templates are read from the appropriate resource files during setup, and are subsequently
     interpolated to the desired parameters and wavelength grid points by calling the luminosities()
-    function as often as needed. */
+    function as often as needed. Out-of-range parameter values are clipped to the nearest boundary.
+    The supported parameter ranges are:
+        - Metallicity: [0.0002, 0.03]
+        - Age: \f$[10^{5.5}, 10^{10.15}]\f$ yr
+        - Slope for "VaryLowMass" IMF: [1, -4]
+        - Slope for "VaryHighMass" IMF: [-3, -1]
+*/
 class FSPSVariableIMFSEDFamily : public SEDFamily
 {
     /** The enumeration type indicating the type of initial mass function (IMF). */
