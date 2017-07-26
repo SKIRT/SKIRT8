@@ -9,7 +9,7 @@
 #
 
 # list of archives to be downloaded and extracted (separate filenames with a space)
-FILELIST=( PolarizationProperties.tar.gz )
+FILELIST=( PolarizationProperties.tar.gz FSPSVariableIMFSED.tar.gz )
 
 # download using wget (Linux) or curl (Mac OS X)
 if which wget >/dev/null
