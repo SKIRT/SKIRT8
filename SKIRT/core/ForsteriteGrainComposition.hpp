@@ -23,14 +23,14 @@
 
     - \em Amorphous silicates with forsterite-normative composition from Köhler et al. 2014 (A&A,
       565, L9). Together with the amorphous silicates with enstatite-normative composition, they
-      replace the silicate grains of Jones et al. 2013 (A&A, 558, A62). The calorimetric properties
-      are calculated in DustEM. */
+      represent the silicate grains of Jones et al. 2017 (A&A, 602, A46). The optical and calorimetric
+      properties are loaded from data files calculated for DustEM. */
 class ForsteriteGrainComposition : public GrainComposition
 {
     /** The enumeration type indicating the type of Forsterite grains. */
     ENUM_DEF(GrainType, Crystalline, Amorphous)
-    ENUM_VAL(GrainType, Crystalline, "crystalline")
-    ENUM_VAL(GrainType, Amorphous, "amorphous")
+    ENUM_VAL(GrainType, Crystalline, "crystalline (Min et al.)")
+    ENUM_VAL(GrainType, Amorphous, "amorphous (Jones et al. 2017)")
     ENUM_END()
 
     ITEM_CONCRETE(ForsteriteGrainComposition, GrainComposition, "a Forsterite dust grains composition")
