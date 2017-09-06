@@ -47,6 +47,7 @@ namespace
         case FSPSVariableIMFSEDFamily::InitialMassFunction::VaryLowMass: return "LoM";
         case FSPSVariableIMFSEDFamily::InitialMassFunction::VaryHighMass: return "HiM";
         }
+        return string();
     }
 }
 
