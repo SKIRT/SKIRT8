@@ -31,10 +31,10 @@ void ForsteriteGrainComposition::setupSelfBefore()
 
     case GrainType::Amorphous:
         setBulkDensity(2190.);
-        loadLogHeatCapacityGrid("GrainComposition/DustEM/hcap/C_aOLM5.DAT");
+        loadLogHeatCapacityGrid("GrainComposition/DustEM/hcap/C_aOlM5.DAT");
         loadOpticalGrid("GrainComposition/DustEM/oprop/LAMBDA.DAT",
-                        "GrainComposition/DustEM/oprop/Q_aOLM5.DAT",
-                        "GrainComposition/DustEM/oprop/G_aOLM5.DAT");
+                        "GrainComposition/DustEM/oprop/Q_aOlM5.DAT",
+                        "GrainComposition/DustEM/oprop/G_aOlM5.DAT");
         break;
     }
 }
