@@ -49,21 +49,28 @@ protected:
 
 private:
     /** This function drives the dust self-absorption phase in a panchromatic Monte Carlo
-        simulation. This function consists of a big loop, which represents the different cycles of
-        the dust self-absorption phase. This outer loop, and the function, terminates when either
-        the maximum number of dust self-absorption iterations has been reached (the hardcoded value
-        is 100), or when the total luminosity absorbed by the dust is stable and does not change by
-        more than 0.5% compared to the previous cycle. Within every cycle, the first task is to
-        construct the dust emission library that describes the spectral properties of the dust
-        emission. Subsequently the dust self-absorption phase implements a parallelized loop that
-        iterates over \f$N_{\text{pp}}\times N_\lambda\f$ monochromatic photon packages. Within
-        this loop, the function simulates the life cycle of a single dust photon package. Before we
-        can start the life cycle of the photon packages at a given wavelength index \f$\ell\f$, we
-        first have to determine the total luminosity that is emitted from every dust cell at that
-        wavelength index. This is just the product of the total luminosity absorbed in the
-        \f$m\f$'th dust cell, \f$L^{\text{abs}}_m\f$, and the normalized SED at wavelength index
-        \f$\ell\f$ corresponding to that cell, as obtained from the dust emission library. Once we
-        know the luminosity \f$L_{\ell,m}\f$ emitted by each dust cell, we calculate the total dust
+        simulation. The function implements a big loop that iterates over consecutive
+        self-absorption calculations until a self-consistent state is reached.
+
+        The minimum and maximum number of iterations can be specified as silent options of the
+        PanDustSystem object in the simulation. Within these limits, the actual number of
+        iterations performed is determined by convergence criteria which can also be specified as
+        silent options of the PanDustSystem object. Convergence is reached (and the function exits)
+        when (a) the absorbed dust luminosity is less than a given fraction of the absorbed stellar
+        luminosity, \em OR (b) the absorbed dust luminosity has changed by less than a given
+        fraction compared to the previous iteration.
+
+        Within every iteration, the first task is to construct the dust emission library that
+        describes the spectral properties of the dust emission. Subsequently the dust
+        self-absorption phase implements a parallelized loop that iterates over
+        \f$N_{\text{pp}}\times N_\lambda\f$ monochromatic photon packages. Within this loop, the
+        function simulates the life cycle of a single dust photon package. Before we can start the
+        life cycle of the photon packages at a given wavelength index \f$\ell\f$, we first have to
+        determine the total luminosity that is emitted from every dust cell at that wavelength
+        index. This is just the product of the total luminosity absorbed in the \f$m\f$'th dust
+        cell, \f$L^{\text{abs}}_m\f$, and the normalized SED at wavelength index \f$\ell\f$
+        corresponding to that cell, as obtained from the dust emission library. Once we know the
+        luminosity \f$L_{\ell,m}\f$ emitted by each dust cell, we calculate the total dust
         luminosity, \f[ L_\ell = \sum_{m=0}^{N_{\text{cells}}-1} L_{\ell,m}, \f] and create a
         vector \f$X_m\f$ that describes the normalized cumulative luminosity distribution as a
         function of the cell number \f$m\f$, \f[ X_m = \frac{ \sum_{m'=0}^m L_{\ell,m'} }{ L_\ell

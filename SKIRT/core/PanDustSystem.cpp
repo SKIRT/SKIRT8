@@ -162,7 +162,8 @@ void PanDustSystem::setupSelfAfter()
 void PanDustSystem::setEmulationMode()
 {
     _emulationMode = true;
-    if (_dustEmissivity && _includeSelfAbsorption) _numCycles = 1;
+    // In emulation mode, always perform exactly one self-absorption iteration
+    if (_dustEmissivity && _includeSelfAbsorption) _minIterations = _maxIterations = 1;
 }
 
 ////////////////////////////////////////////////////////////////////

@@ -48,39 +48,37 @@ void PanMonteCarloSimulation::runDustSelfAbsorption()
 {
     TimeLogger logger(log(), "the dust self-absorption phase");
 
-    // Initialize the total absorbed luminosity in the previous cycle
+    // Get the parameters controlling the self-absorption iteration
+    int minIters = _pds->minIterations();
+    int maxIters = _pds->maxIterations();
+    double fractionOfStellar = _pds->maxFractionOfStellar();
+    double fractionOfPrevious = _pds->maxFractionOfPrevious();
+
+    // Initialize the total absorbed luminosity in the previous iteration
     double prevLabsdusttot = 0.;
 
-    // Perform three "stages" of max 100 cycles each; the first stage uses 10 times less photon packages
-    const int Nstages = 3;
-    const char* stage_name[] = {"first-stage", "second-stage", "last-stage"};
-    const double stage_factor[] = {1./10., 1./3., 1.};
-    const double stage_epsmax[] = {0.010, 0.007, 0.005};
-    for (int stage=0; stage<Nstages; stage++)
+    // Iterate over the maximum number of iterations; the loop body returns from the function
+    // when convergence is reached after the minimum number of iterations have been completed
+    for (int iter = 1; iter<=maxIters; iter++)
     {
-        bool fixedNcycles = _pds->numCycles()!=0;
-        const int Ncyclesmax = fixedNcycles ? _pds->numCycles() : 100;
-        bool convergence = false;
-        int cycle = 1;
-        while (cycle<=Ncyclesmax && (!convergence || fixedNcycles))
+        // Construct the dust emission spectra
         {
-            TimeLogger logger(log(), "the " + string(stage_name[stage]) + " dust self-absorption cycle "
-                              + std::to_string(cycle));
-
-            // Construct the dust emission spectra
-            log()->info("Calculating dust emission spectra...");
+            TimeLogger logger(log(), "calculation of emission spectra for dust self-absorption iteration "
+                                            + std::to_string(iter));
             _pds->calculateDustEmission();
-            log()->info("Dust emission spectra calculated.");
+        }
+
+        // Shoot the photons
+        {
+            TimeLogger logger(log(), "photon shooting for dust self-absorption iteration " + std::to_string(iter));
 
             // Determine the bolometric luminosity that is absorbed in every cell (and that will hence be re-emitted).
             _Labsbolv = _pds->absorbedLuminosity();
             // Set the absorbed dust luminosity to zero in all cells
             _pds->resetDustAbsorption();
 
-            // Perform dust self-absorption, using the appropriate number of packages for the current stage
-            setChunkParams(numPackages()*stage_factor[stage]);
-            initProgress(string(stage_name[stage]) + " dust self-absorption cycle " + std::to_string(cycle));
-
+            // Perform dust self-absorption
+            initProgress("dust self-absorption iteration " + std::to_string(iter));
             Parallel* parallel = find<ParallelFactory>()->parallel();
             if (_lambdagrid->assigner())
                 parallel->call(this, &PanMonteCarloSimulation::doDustSelfAbsorptionChunk,
@@ -89,43 +87,68 @@ void PanMonteCarloSimulation::runDustSelfAbsorption()
                 parallel->call(this, &PanMonteCarloSimulation::doDustSelfAbsorptionChunk, _Nlambda, _Nchunks);
 
             // Wait for the other processes to reach this point
-            communicator()->wait("this self-absorption cycle");
+            communicator()->wait("this self-absorption iteration");
             _pds->sumResults();
+        }
 
-            // Determine and log the total absorbed luminosity in the vector Labstotv.
-            double Labsdusttot = _pds->absorbedDustLuminosity();
-            log()->info("The total absorbed stellar luminosity is "
-                       + StringUtils::toString(units()->obolluminosity(_pds->absorbedStellarLuminosity())) + " "
-                       + units()->ubolluminosity() );
-            log()->info("The total absorbed dust luminosity is "
-                       + StringUtils::toString(units()->obolluminosity(Labsdusttot)) + " "
-                       + units()->ubolluminosity() );
+        // Determine and log the total absorbed luminosity
+        double Labsstellartot = _pds->absorbedStellarLuminosity();
+        double Labsdusttot = _pds->absorbedDustLuminosity();
+        log()->info("The total absorbed stellar luminosity is "
+                   + StringUtils::toString(units()->obolluminosity(Labsstellartot)) + " "
+                   + units()->ubolluminosity() );
+        log()->info("The total absorbed dust luminosity in iteration " + std::to_string(iter) + " is "
+                   + StringUtils::toString(units()->obolluminosity(Labsdusttot)) + " "
+                   + units()->ubolluminosity() );
 
-            // Check the criteria to terminate the self-absorption cycle:
-            // - the total absorbed dust luminosity should change by less than epsmax compared to the previous cycle;
-            // - the last stage must perform at least 2 cycles (to make sure that the energy is properly distributed)
-            // If the total absorbed dust luminosity is zero, then convergence is reached regardless of the above
-            double eps = fabs((Labsdusttot-prevLabsdusttot)/Labsdusttot);
-            prevLabsdusttot = Labsdusttot;
-            if ( Labsdusttot<=0. || ((stage<Nstages-1 || cycle>1) && eps<stage_epsmax[stage]) )
+        // Log the current performance and corresponding convergence criteria
+        if (Labsstellartot > 0. && Labsdusttot > 0.)
+        {
+            if (iter == 1)
             {
-                log()->info("Convergence reached; the last increase in the absorbed dust luminosity was "
-                           + StringUtils::toString(eps*100, 'f', 2) + "%");
-                convergence = true;
+                log()->info("--> absorbed dust luminosity is "
+                            + StringUtils::toString(Labsdusttot/Labsstellartot*100., 'f', 2)
+                            + "% of absorbed stellar luminosity (convergence criterion is "
+                            + StringUtils::toString(fractionOfStellar*100., 'f', 2) + "%)");
             }
             else
             {
-                log()->info("Convergence not yet reached; the increase in the absorbed dust luminosity was "
-                           + StringUtils::toString(eps*100, 'f', 2) + "%");
+                log()->info("--> absorbed dust luminosity changed by "
+                            + StringUtils::toString(abs((Labsdusttot-prevLabsdusttot)/Labsdusttot)*100., 'f', 2)
+                            + "% compared to previous iteration (convergence criterion is "
+                            + StringUtils::toString(fractionOfPrevious*100., 'f', 2) + "%)");
             }
-            cycle++;
         }
-        if (!convergence && !emulationMode())
+
+        // Force at least the minimum number of iterations
+        if (iter < minIters)
         {
-            log()->error("Convergence not yet reached after " + std::to_string(Ncyclesmax) + " "
-                        + string(stage_name[stage]) + " cycles!");
+            log()->info("Continuing until " + std::to_string(minIters) + " iterations have been performed");
         }
+        else
+        {
+            // The self-absorption iteration has reached convergence if one or more of the following conditions holds:
+            // - the absorbed stellar luminosity is zero
+            // - the absorbed dust luminosity is zero
+            // - the absorbed dust luminosity is less than a given fraction of the absorbed stellar luminosity
+            // - the absorbed dust luminosity has changed by less than a given fraction compared to the previous iter
+            if (Labsstellartot <= 0. || Labsdusttot <= 0.
+                || Labsdusttot/Labsstellartot < fractionOfStellar
+                || abs((Labsdusttot-prevLabsdusttot)/Labsdusttot) < fractionOfPrevious)
+            {
+                log()->info("Convergence reached after " + std::to_string(iter) + " iterations");
+                return; // end the iteration by returning from the function
+            }
+            else
+            {
+                log()->info("Convergence not yet reached after " + std::to_string(iter) + " iterations");
+            }
+        }
+        prevLabsdusttot = Labsdusttot;
     }
+
+    // If the loop terminates, convergence was not reached even after the maximum number of iterations
+    log()->error("Convergence not yet reached after " + std::to_string(maxIters) + " iterations");
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -190,24 +213,31 @@ void PanMonteCarloSimulation::runDustEmission()
     TimeLogger logger(log(), "the dust emission phase");
 
     // Construct the dust emission spectra
-    log()->info("Calculating dust emission spectra...");
-    _pds->calculateDustEmission();
-    log()->info("Dust emission spectra calculated.");
+    {
+        TimeLogger logger(log(), "calculation of emission spectra for dust emission phase");
+        log()->info("Calculating dust emission spectra...");
+        _pds->calculateDustEmission();
+    }
 
-    // Determine the bolometric luminosity that is absorbed in every cell (and that will hence be re-emitted).
-    _Labsbolv = _pds->absorbedLuminosity();
+    // Shoot the photons
+    {
+        TimeLogger logger(log(), "photon shooting for dust emission phase");
 
-    // Perform the actual dust emission, possibly using more photon packages to obtain decent resolution
-    setChunkParams(numPackages()*_pds->emissionBoost());
-    initProgress("dust emission");
-    Parallel* parallel = find<ParallelFactory>()->parallel();
-    if (_lambdagrid->assigner())
-        parallel->call(this, &PanMonteCarloSimulation::doDustEmissionChunk, _lambdagrid->assigner(), _Nchunks);
-    else
-        parallel->call(this, &PanMonteCarloSimulation::doDustEmissionChunk, _Nlambda, _Nchunks);
+        // Determine the bolometric luminosity that is absorbed in every cell (and that will hence be re-emitted).
+        _Labsbolv = _pds->absorbedLuminosity();
 
-    // Wait for the other processes to reach this point
-    communicator()->wait("the dust emission phase");
+        // Perform the actual dust emission, possibly using more photon packages to obtain decent resolution
+        setChunkParams(numPackages()*_pds->emissionBoost());
+        initProgress("dust emission");
+        Parallel* parallel = find<ParallelFactory>()->parallel();
+        if (_lambdagrid->assigner())
+            parallel->call(this, &PanMonteCarloSimulation::doDustEmissionChunk, _lambdagrid->assigner(), _Nchunks);
+        else
+            parallel->call(this, &PanMonteCarloSimulation::doDustEmissionChunk, _Nlambda, _Nchunks);
+
+        // Wait for the other processes to reach this point
+        communicator()->wait("the dust emission phase");
+    }
 }
 
 ////////////////////////////////////////////////////////////////////

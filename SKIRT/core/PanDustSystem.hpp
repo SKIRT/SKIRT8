@@ -49,15 +49,40 @@ class PanDustSystem : public DustSystem
 
     PROPERTY_DOUBLE(emissionBoost, "the factor by which to boost the number of dust emission photon packages")
         ATTRIBUTE_RELEVANT_IF(emissionBoost, "dustEmissivity")
-        ATTRIBUTE_MIN_VALUE(emissionBoost, "[0")
+        ATTRIBUTE_MIN_VALUE(emissionBoost, "]0")
         ATTRIBUTE_MAX_VALUE(emissionBoost, "1000]")
         ATTRIBUTE_DEFAULT_VALUE(emissionBoost, "1")
         ATTRIBUTE_SILENT(emissionBoost)
 
-    PROPERTY_INT(numCycles, "the number of cycles in each dust self-absorption stage")
-        ATTRIBUTE_RELEVANT_IF(numCycles, "includeSelfAbsorption")
-        ATTRIBUTE_DEFAULT_VALUE(numCycles, "0")
-        ATTRIBUTE_SILENT(numCycles)
+    PROPERTY_INT(minIterations, "the minimum number of dust self-absorption iterations")
+        ATTRIBUTE_RELEVANT_IF(minIterations, "includeSelfAbsorption")
+        ATTRIBUTE_MIN_VALUE(minIterations, "1")
+        ATTRIBUTE_MAX_VALUE(minIterations, "1000")
+        ATTRIBUTE_DEFAULT_VALUE(minIterations, "1")
+        ATTRIBUTE_SILENT(minIterations)
+
+    PROPERTY_INT(maxIterations, "the maximum number of dust self-absorption iterations")
+        ATTRIBUTE_RELEVANT_IF(maxIterations, "includeSelfAbsorption")
+        ATTRIBUTE_MIN_VALUE(maxIterations, "1")
+        ATTRIBUTE_MAX_VALUE(maxIterations, "1000")
+        ATTRIBUTE_DEFAULT_VALUE(maxIterations, "10")
+        ATTRIBUTE_SILENT(maxIterations)
+
+    PROPERTY_DOUBLE(maxFractionOfStellar, "convergence is reached when the total absorbed dust luminosity "
+                                          "is less than this fraction of the total absorbed stellar luminosity")
+        ATTRIBUTE_RELEVANT_IF(maxFractionOfStellar, "includeSelfAbsorption")
+        ATTRIBUTE_MIN_VALUE(maxFractionOfStellar, "]0")
+        ATTRIBUTE_MAX_VALUE(maxFractionOfStellar, "1[")
+        ATTRIBUTE_DEFAULT_VALUE(maxFractionOfStellar, "0.01")
+        ATTRIBUTE_SILENT(maxFractionOfStellar)
+
+    PROPERTY_DOUBLE(maxFractionOfPrevious, "convergence is reached when the total absorbed dust luminosity "
+                                           "has changed by less than this fraction compared to the previous iteration")
+        ATTRIBUTE_RELEVANT_IF(maxFractionOfPrevious, "includeSelfAbsorption")
+        ATTRIBUTE_MIN_VALUE(maxFractionOfPrevious, "]0")
+        ATTRIBUTE_MAX_VALUE(maxFractionOfPrevious, "1[")
+        ATTRIBUTE_DEFAULT_VALUE(maxFractionOfPrevious, "0.03")
+        ATTRIBUTE_SILENT(maxFractionOfPrevious)
 
     PROPERTY_BOOL(writeEmissivity, "output a data file with the dust mix emissivities in the local ISRF")
         ATTRIBUTE_RELEVANT_IF(writeEmissivity, "dustEmissivity")
@@ -102,8 +127,8 @@ protected:
 
 public:
     /** This function puts the dust system in emulation mode. Specifically, it sets an internal
-        flag that can be queried by other classes, and if dust self-absorption is enabled, it sets
-        the number of self-absorption cycles to 1. */
+        flag that can be queried by other classes, and if dust self-absorption is enabled, it
+        forces the number of self-absorption iterations to one. */
     void setEmulationMode();
 
     /** This function returns true if the dust system has been put in emulation mode. */
