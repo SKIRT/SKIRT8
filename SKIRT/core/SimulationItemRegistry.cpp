@@ -31,6 +31,7 @@
 #include "CombineGeometryDecorator.hpp"
 #include "CompDustDistribution.hpp"
 #include "ConfigurableDustMix.hpp"
+#include "ConicalPointGeometry.hpp"
 #include "ConicalShellGeometry.hpp"
 #include "CubBackgroundGeometry.hpp"
 #include "CubicSplineSmoothingKernel.hpp"
@@ -282,6 +283,7 @@ SimulationItemRegistry::SimulationItemRegistry(string version, string format)
 
     // anistropic geometries
     ItemRegistry::add<LaserGeometry>();
+    ItemRegistry::add<ConicalPointGeometry>();
     ItemRegistry::add<NetzerAccretionDiskGeometry>();
     ItemRegistry::add<StellarSurfaceGeometry>();
     ItemRegistry::add<SpheBackgroundGeometry>();
