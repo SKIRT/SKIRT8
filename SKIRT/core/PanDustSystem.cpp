@@ -605,7 +605,7 @@ void PanDustSystem::write() const
         TextOutFile file(this, "ds_isrf", "ISRF");
 
         // Write the header
-        file.writeLine("# Mean field intensities for all dust cells with nonzero absorption");
+        file.writeLine("# Mean field intensities for all dust cells");
         file.addColumn("dust cell index", 'd');
         file.addColumn("bolometric luminosity absorbed in cell (" + units->ubolluminosity() + ")", 'g');
         for (int ell=0; ell<_Nlambda; ell++)
@@ -613,7 +613,7 @@ void PanDustSystem::write() const
                            + StringUtils::toString(units->owavelength(lambdagrid->lambda(ell)), 'g')
                            + " " + units->uwavelength(), 'g');
 
-        // Write one line for each dust cell with nonzero absorption
+        // Write one line for each dust cell
         int Ncells = dustGrid()->numCells();
         for (int m=0; m<Ncells; m++)
         {
