@@ -58,6 +58,7 @@
 #include "FileGrainComposition.hpp"
 #include "FileMesh.hpp"
 #include "FileSED.hpp"
+#include "FileTreeDustGrid.hpp"
 #include "FileWavelengthGrid.hpp"
 #include "FoamGeometryDecorator.hpp"
 #include "ForsteriteGrainComposition.hpp"
@@ -374,6 +375,7 @@ SimulationItemRegistry::SimulationItemRegistry(string version, string format)
     ItemRegistry::add<TreeDustGrid>();
     ItemRegistry::add<OctTreeDustGrid>();
     ItemRegistry::add<BinTreeDustGrid>();
+    ItemRegistry::add<FileTreeDustGrid>();
     ItemRegistry::add<ParticleTreeDustGrid>();
     ItemRegistry::add<VoronoiDustGrid>();
     ItemRegistry::add<AdaptiveMeshDustGrid>();
