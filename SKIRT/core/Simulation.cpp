@@ -39,12 +39,23 @@ void Simulation::run()
 void Simulation::setupAndRun()
 {
     string processInfo;
+
+    _factory->setup();
+    auto threads = _factory->maxThreadCount();
+    if (threads > 1) processInfo += " using " + std::to_string(threads) + " threads";
+    else processInfo += " using a single thread";
+
     _communicator->setup();
-    if (_communicator->isMultiProc())
+    auto procs = _communicator->size();
+    if (procs > 1)
     {
-        processInfo = " with " + std::to_string(_communicator->size()) + " processes";
+        processInfo += " for each of " + std::to_string(procs) + " processes";
         if (_communicator->dataParallel()) processInfo += " in data parallelization mode";
         else processInfo += " in task parallelization mode";
+    }
+    else
+    {
+        processInfo += " and a single process";
     }
 
     _log->setup();
