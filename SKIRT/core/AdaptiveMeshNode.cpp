@@ -62,18 +62,16 @@ void AdaptiveMeshNode::addNeighbors(AdaptiveMeshNode* root, double eps)
     if (_nodes.empty())
     {
         // node center
-        double xc = (_xmin+_xmax)/2.;
-        double yc = (_ymin+_ymax)/2.;
-        double zc = (_zmin+_zmax)/2.;
+        Vec ctr = center();
 
         // determine the node just beyond the center of each wall (or null pointer for domain walls)
         _nodes.resize(6);
-        _nodes[BACK]   = root->whichNode(Vec(_xmin-eps, yc, zc));
-        _nodes[FRONT]  = root->whichNode(Vec(_xmax+eps, yc, zc));
-        _nodes[LEFT]   = root->whichNode(Vec(xc, _ymin-eps, zc));
-        _nodes[RIGHT]  = root->whichNode(Vec(xc, _ymax+eps, zc));
-        _nodes[BOTTOM] = root->whichNode(Vec(xc, yc, _zmin-eps));
-        _nodes[TOP]    = root->whichNode(Vec(xc, yc, _zmax+eps));
+        _nodes[BACK]   = root->whichNode(ctr + Vec(-eps, 0, 0));
+        _nodes[FRONT]  = root->whichNode(ctr + Vec(+eps, 0, 0));
+        _nodes[LEFT]   = root->whichNode(ctr + Vec(0, -eps, 0));
+        _nodes[RIGHT]  = root->whichNode(ctr + Vec(0, +eps, 0));
+        _nodes[BOTTOM] = root->whichNode(ctr + Vec(0, 0, -eps));
+        _nodes[TOP]    = root->whichNode(ctr + Vec(0, 0, +eps));
     }
 }
 

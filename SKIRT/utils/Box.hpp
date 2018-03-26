@@ -16,16 +16,14 @@
     \,x_\text{max},y_\text{max},z_\text{max})\f$ which are stored in data members with similar
     names. The class offers functions to retrieve various (mostly trivial) properties of the box,
     including its coordinates and widths in each direction and its volume. A Box instance is
-    immutable: once created it can no longer be changed (although a derived class can possibly
-    change this behavior). The Box class is fully implemented inline (in this header file). Most
-    compilers optimize away all overhead so that using this class is just as efficient as directly
-    writing the code in terms of the box components. */
+    essentially immutable: once created it can no longer be changed. There is one exception to this
+    rule: a derived class can replace the complete Box contents through the setExtent() function.
+
+    The Box class is fully implemented inline (in this header file). Most compilers optimize away
+    all overhead so that using this class is just as efficient as directly writing the code in
+    terms of the box components. */
 class Box
 {
-protected:
-    /** These data members represent the cartesian vector components */
-    double _xmin, _ymin, _zmin, _xmax, _ymax, _zmax;
-
 public:
     /** The default constructor creates an empty box at the origin, i.e. it initializes all box
         coordinates to zero. */
@@ -137,6 +135,20 @@ public:
         k = std::max(0, std::min(nz-1, static_cast<int>(nz*(r.z()-_zmin)/(_zmax-_zmin)) ));
     }
 
+protected:
+    /** This function replaces the extent of the box with the newly specified values. This function
+        is intended for use in derived classes only. */
+    void setExtent(const Box& extent)
+    { *this = extent; }
+
+    /** This function replaces the extent of the box with the newly specified values. This function
+        is intended for use in derived classes only. */
+    void setExtent(double xmin, double ymin, double zmin, double xmax, double ymax, double zmax)
+    { _xmin=xmin; _ymin=ymin; _zmin=zmin; _xmax=xmax; _ymax=ymax; _zmax=zmax; }
+
+private:
+    /** These data members represent the cartesian vector components */
+    double _xmin, _ymin, _zmin, _xmax, _ymax, _zmax;
 };
 
 //////////////////////////////////////////////////////////////////////

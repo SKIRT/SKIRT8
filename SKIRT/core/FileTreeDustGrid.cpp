@@ -98,9 +98,11 @@ void FileTreeDustGrid::setupSelfBefore()
         _cellnumberv.push_back(m);
     }
 
-    // remember the number of nodes and the extent of the complete domain
+    // remember the number of nodes
     _Nnodes = _tree.size();
-    static_cast<Box>(*this) = root()->extent();
+
+    // set our inherited box to the extent of the root node
+    setExtent(root()->extent());
     _eps = 1e-12 * extent().widths().norm();
 
     // add children to the nodes
@@ -163,11 +165,11 @@ void FileTreeDustGrid::setupSelfBefore()
         for (int l=0; l<_Nnodes; l++) _tree[l]->sortNeighbors();
     }
 
-    // Verify that bookkeeping method is not used with binary tree
+    // verify that bookkeeping method is not used with binary tree
     if (searchMethod() == SearchMethod::Bookkeeping && treetype == BinTree)
         throw FATALERROR("Bookkeeping method is not compatible with binary tree");
 
-    // Cache pointers used elsewhere
+    // cache pointers used elsewhere
     _random = find<Random>();
     _dmib = find<DustDistribution>()->interface<DustMassInBoxInterface>();
 }
@@ -523,7 +525,7 @@ double FileTreeDustGrid::density(int h, int m) const
 void FileTreeDustGrid::write_xy(DustGridPlotFile* outfile) const
 {
     // Output the root cell and all leaf cells that are close to the section plane
-    outfile->writeRectangle(_xmin, _ymin, _xmax, _ymax);
+    outfile->writeRectangle(xmin(), ymin(), xmax(), ymax());
     int Ncells = numCells();
     for (int m=0; m<Ncells; m++)
     {
@@ -540,7 +542,7 @@ void FileTreeDustGrid::write_xy(DustGridPlotFile* outfile) const
 void FileTreeDustGrid::write_xz(DustGridPlotFile* outfile) const
 {
     // Output the root cell and all leaf cells that are close to the section plane
-    outfile->writeRectangle(_xmin, _zmin, _xmax, _zmax);
+    outfile->writeRectangle(xmin(), zmin(), xmax(), zmax());
     int Ncells = numCells();
     for (int m=0; m<Ncells; m++)
     {
@@ -557,7 +559,7 @@ void FileTreeDustGrid::write_xz(DustGridPlotFile* outfile) const
 void FileTreeDustGrid::write_yz(DustGridPlotFile* outfile) const
 {
     // Output the root cell and all leaf cells that are close to the section plane
-    outfile->writeRectangle(_ymin, _zmin, _ymax, _zmax);
+    outfile->writeRectangle(ymin(), zmin(), ymax(), zmax());
     int Ncells = numCells();
     for (int m=0; m<Ncells; m++)
     {

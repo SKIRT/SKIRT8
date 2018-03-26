@@ -36,14 +36,14 @@ TreeNode* OctTreeNode::createNode(TreeNode* father, int id, const Box& extent)
 void OctTreeNode::createChildrenSplitPoint(int id, Vec r)
 {
     _children.resize(8);
-    CHILD_0 = createNode(this, id++, Box(_xmin, _ymin, _zmin, r.x(), r.y(), r.z()));
-    CHILD_1 = createNode(this, id++, Box(r.x(), _ymin, _zmin, _xmax, r.y(), r.z()));
-    CHILD_2 = createNode(this, id++, Box(_xmin, r.y(), _zmin, r.x(), _ymax, r.z()));
-    CHILD_3 = createNode(this, id++, Box(r.x(), r.y(), _zmin, _xmax, _ymax, r.z()));
-    CHILD_4 = createNode(this, id++, Box(_xmin, _ymin, r.z(), r.x(), r.y(), _zmax));
-    CHILD_5 = createNode(this, id++, Box(r.x(), _ymin, r.z(), _xmax, r.y(), _zmax));
-    CHILD_6 = createNode(this, id++, Box(_xmin, r.y(), r.z(), r.x(), _ymax, _zmax));
-    CHILD_7 = createNode(this, id++, Box(r.x(), r.y(), r.z(), _xmax, _ymax, _zmax));
+    CHILD_0 = createNode(this, id++, Box(xmin(), ymin(), zmin(), r.x() , r.y() , r.z() ));
+    CHILD_1 = createNode(this, id++, Box(r.x() , ymin(), zmin(), xmax(), r.y() , r.z() ));
+    CHILD_2 = createNode(this, id++, Box(xmin(), r.y() , zmin(), r.x() , ymax(), r.z() ));
+    CHILD_3 = createNode(this, id++, Box(r.x() , r.y() , zmin(), xmax(), ymax(), r.z() ));
+    CHILD_4 = createNode(this, id++, Box(xmin(), ymin(), r.z() , r.x() , r.y() , zmax()));
+    CHILD_5 = createNode(this, id++, Box(r.x() , ymin(), r.z() , xmax(), r.y() , zmax()));
+    CHILD_6 = createNode(this, id++, Box(xmin(), r.y() , r.z() , r.x() , ymax(), zmax()));
+    CHILD_7 = createNode(this, id++, Box(r.x() , r.y() , r.z() , xmax(), ymax(), zmax()));
 }
 
 //////////////////////////////////////////////////////////////////////

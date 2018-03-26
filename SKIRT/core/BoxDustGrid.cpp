@@ -13,14 +13,13 @@ void BoxDustGrid::setupSelfBefore()
 {
     DustGrid::setupSelfBefore();
 
-    // copy the configured values into our inherited Box
-    _xmin = _minX; _ymin = _minY; _zmin = _minZ;
-    _xmax = _maxX; _ymax = _maxY; _zmax = _maxZ;
+    // verify that the box is not empty
+    if (_maxX <= _minX) throw FATALERROR("The extent of the box should be positive in the X direction");
+    if (_maxY <= _minY) throw FATALERROR("The extent of the box should be positive in the Y direction");
+    if (_maxZ <= _minZ) throw FATALERROR("The extent of the box should be positive in the Z direction");
 
-    // verify the values
-    if (_xmax <= _xmin) throw FATALERROR("The extent of the box should be positive in the X direction");
-    if (_ymax <= _ymin) throw FATALERROR("The extent of the box should be positive in the Y direction");
-    if (_zmax <= _zmin) throw FATALERROR("The extent of the box should be positive in the Z direction");
+    // copy the configured values into our inherited Box
+    setExtent(_minX, _minY, _minZ, _maxX, _maxY, _maxZ);
 }
 
 //////////////////////////////////////////////////////////////////////
