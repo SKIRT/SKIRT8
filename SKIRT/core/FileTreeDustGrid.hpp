@@ -19,8 +19,12 @@ class Random;
     incoming data, the tree can be an octtree (8 children per node) or a kd-tree (2 children per
     node). See TreeDustGrid for more information.
 
-    Note: the current implementation involves a substantial amount of code duplication from
-          TreeDustGrid because of complications with the inheritance structure.
+    Compatibility note: the current implementation does NOT support binary trees with a subdivision
+    direction method other than alternating. No warning or error is given, but things will go wrong
+    when shooting photons.
+
+    Implementation note: the current implementation involves a substantial amount of code
+    duplication from TreeDustGrid because of complications with the inheritance structure.
 */
 class FileTreeDustGrid : public DustGrid, public Box, public DustGridDensityInterface
 {

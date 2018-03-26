@@ -22,7 +22,7 @@
 //////////////////////////////////////////////////////////////////////
 
 BinTreeNode::BinTreeNode(TreeNode* father, int id, const Box& extent)
-    : TreeNode(father, id, extent)
+    : TreeNode(father, id, extent), _dir(level() % 3)
 {
 }
 

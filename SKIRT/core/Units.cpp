@@ -16,6 +16,13 @@ string Units::unit(string qty) const
 
 ////////////////////////////////////////////////////////////////////
 
+double Units::in(std::string qty, std::string unit, double value) const
+{
+    return _unitDef.in(qty, unit, value);
+}
+
+////////////////////////////////////////////////////////////////////
+
 double Units::out(string qty, double value) const
 {
     return _unitDef.out(qty, type(), value);
