@@ -16,6 +16,7 @@
 #include "AdaptiveMeshGeometry.hpp"
 #include "AdaptiveMeshStellarComp.hpp"
 #include "AllCellsDustLib.hpp"
+#include "AllSkyInstrument.hpp"
 #include "AmHydrocarbonGrainComposition.hpp"
 #include "Benchmark1DDustMix.hpp"
 #include "Benchmark2DDustMix.hpp"
@@ -225,6 +226,7 @@ SimulationItemRegistry::SimulationItemRegistry(string version, string format)
     ItemRegistry::add<SimpleInstrument>();
     ItemRegistry::add<FullInstrument>();
     ItemRegistry::add<PerspectiveInstrument>();
+    ItemRegistry::add<AllSkyInstrument>();
     ItemRegistry::add<MultiFrameInstrument>();
     ItemRegistry::add<InstrumentFrame>();
 
