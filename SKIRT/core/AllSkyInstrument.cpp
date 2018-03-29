@@ -18,9 +18,6 @@ void AllSkyInstrument::setupSelfBefore()
 {
     Instrument::setupSelfBefore();
 
-    // verify attribute values
-    if (_Ux == 0 && _Uy == 0 && _Uz == 0) throw FATALERROR("Upwards direction cannot be null vector");
-
     // set number of pixels using fixed aspect ratio
     _Nx = 2 * _numPixelsY;
     _Ny = _numPixelsY;
@@ -39,6 +36,43 @@ void AllSkyInstrument::setupSelfBefore()
     Vec kx = Vec::cross(ky,kn);
     _bfkx = Direction(kx/kx.norm());
     _bfky = Direction(ky/ky.norm());
+
+    // setup the transformation from world to observer coordinates
+
+    // translate to observer position
+    _transform.translate(-_Ox, -_Oy, -_Oz);
+
+    // unit vector in direction from crosshair to observer
+    kn /= kn.norm();
+    double a = kn.x();
+    double b = kn.y();
+    double c = kn.z();
+
+    // rotate from world to observer coordinates just as for the perspective transformation
+    double v = sqrt(b*b+c*c);
+    if (v > 0.3)
+    {
+        _transform.rotateX(c/v, -b/v);
+        _transform.rotateY(v, -a);
+        double k = (b*b+c*c)*_Ux - a*b*_Uy - a*c*_Uz;
+        double l = c*_Uy - b*_Uz;
+        double u = sqrt(k*k+l*l);
+        _transform.rotateZ(l/u, -k/u);
+    }
+    else
+    {
+        v = sqrt(a*a+c*c);
+        _transform.rotateY(c/v, -a/v);
+        _transform.rotateX(v, -b);
+        double k = c*_Ux - a*_Uz;
+        double l = (a*a+c*c)*_Uy - a*b*_Ux - b*c*_Uz;
+        double u = sqrt(k*k+l*l);
+        _transform.rotateZ(l/u, -k/u);
+    }
+    // rather than flipping the z-axis as is done for the perspective transformation,
+    // rotate the axes into the alignment appropriate for our purposes (z-axis up, x-axis towards crosshair)
+    _transform.rotateX(0., 1.);
+    _transform.rotateZ(0., -1.);
 
     // the data cube
     _ftotv.initialize("Instrument " + instrumentName() + " total flux", _Nx*_Ny, this);
@@ -77,22 +111,21 @@ Direction AllSkyInstrument::bfky() const
 
 void AllSkyInstrument::detect(PhotonPackage* pp)
 {
-    // vector and distance from launch to observer
-    Vec k = Vec(_Ox,_Oy,_Oz) - pp->position();
-    double d = k.norm();
+    // transform launch position from world to observer coordinates
+    Vec p = _transform.transform(pp->position());
+
+    // get distance from launch position to observer
+    double d = p.norm();
 
     // if the distance is very small, ignore the photon package
     if (d < _s) return;
 
-    // otherwise get the spherical coordinates from the normalized direction
+    // otherwise get the spherical coordinates from the normalized launch position
     double inc, azi;
-    Direction(k/d).spherical(inc, azi);
-
-    // rotate to our frame of reference
-    // TODO
+    Direction(p/d).spherical(inc, azi);
 
     // convert to longitude and latitude:  -pi < lam < pi  and  -pi/2 < phi < pi/2
-    double lam = azi - M_PI;
+    double lam = -azi;  // flip east-west
     double phi = inc - M_PI_2;
 
     // convert longitude and latitude to viewport coordinates:  -1 < x < 1  and -1 < y < 1

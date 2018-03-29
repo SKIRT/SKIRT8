@@ -6,7 +6,7 @@
 #ifndef HOMOGENEOUSTRANSFORM_HPP
 #define HOMOGENEOUSTRANSFORM_HPP
 
-# include "Basics.hpp"
+#include "Vec.hpp"
 
 //////////////////////////////////////////////////////////////////////
 
@@ -83,6 +83,11 @@ public:
         and stores the result in homogeneous coordinates in the output variables. */
     void transform(double x, double y, double z, double w,
                    double& outx, double& outy, double& outz, double& outw) const;
+
+    /** This function applies the current transform to a position vector specified in regular
+        coordinates and returns the transformed position vector in regular coordinates. If the
+        transformed position is at infinity, the value of the returned vector is undefined. */
+    Vec transform(Vec p) const;
 
 private:
     double M[4][4];

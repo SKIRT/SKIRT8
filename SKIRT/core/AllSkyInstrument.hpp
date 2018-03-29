@@ -7,6 +7,7 @@
 #define ALLSKYINSTRUMENT_HPP
 
 #include "Instrument.hpp"
+#include "HomogeneousTransform.hpp"
 #include "ParallelDataCube.hpp"
 
 ////////////////////////////////////////////////////////////////////
@@ -120,6 +121,7 @@ private:
     double _s{0.};          // width and height of a pixel
     Direction _bfkx;        // unit vector along the viewport's x-axis
     Direction _bfky;        // unit vector along the viewport's y-axis
+    HomogeneousTransform _transform;   // transform from world to observer coordinates
 
     // data cube
     ParallelDataCube _ftotv;
