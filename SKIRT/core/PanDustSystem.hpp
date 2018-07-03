@@ -94,6 +94,11 @@ class PanDustSystem : public DustSystem
         ATTRIBUTE_DEFAULT_VALUE(writeISRF, "false")
         ATTRIBUTE_SILENT(writeISRF)
 
+    PROPERTY_BOOL(writeSpectralAbsorption, "output a data file describing the absorption spectrum in each dust cell")
+        ATTRIBUTE_RELEVANT_IF(writeSpectralAbsorption, "dustEmissivity")
+        ATTRIBUTE_DEFAULT_VALUE(writeSpectralAbsorption, "false")
+        ATTRIBUTE_SILENT(writeSpectralAbsorption)
+
     ITEM_END()
 
     //============= Construction - Setup - Destruction =============
