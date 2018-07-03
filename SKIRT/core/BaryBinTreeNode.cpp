@@ -34,9 +34,9 @@ void BaryBinTreeNode::createChildren(int id, const TreeNodeDensityCalculator* ca
     Vec b = calc->barycenter();
 
     // fractional distance to nearest wall, in each direction
-    double dx = min(b.x()-_xmin, _xmax-b.x())/(_xmax-_xmin);
-    double dy = min(b.y()-_ymin, _ymax-b.y())/(_ymax-_ymin);
-    double dz = min(b.z()-_zmin, _zmax-b.z())/(_zmax-_zmin);
+    double dx = min(b.x()-xmin(), xmax()-b.x())/(xmax()-xmin());
+    double dy = min(b.y()-ymin(), ymax()-b.y())/(ymax()-ymin());
+    double dz = min(b.z()-zmin(), zmax()-b.z())/(zmax()-zmin());
 
     // select the direction with the smallest relative distance
     int dir;

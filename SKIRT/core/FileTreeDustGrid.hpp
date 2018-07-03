@@ -3,29 +3,30 @@
 ////       © Astronomical Observatory, Ghent University         ////
 ///////////////////////////////////////////////////////////////// */
 
-#ifndef TREEDUSTGRID_HPP
-#define TREEDUSTGRID_HPP
+#ifndef FILETREEDUSTGRID_HPP
+#define FILETREEDUSTGRID_HPP
 
 #include "BoxDustGrid.hpp"
 #include "DustGridDensityInterface.hpp"
-class DustDistribution;
 class DustMassInBoxInterface;
 class TreeNode;
-class Parallel;
-class ProcessAssigner;
 class Random;
 
 //////////////////////////////////////////////////////////////////////
 
-/** TreeDustGrid is an abstract subclass of the BoxDustGrid class, and represents three-dimensional
-    dust grids with cuboidal cells organized in a tree. The tree's root node encloses the complete
-    spatial domain, and nodes on subsequent levels recursively divide space into ever finer nodes.
-    The depth of the tree can vary from place to place. The leaf cells (those that are not further
-    subdivided) are the actual dust cells. The type of TreeNode used by the TreeDustGrid
-    is decided in each subclass through a factory method. Depending on the type of TreeNode, the
-    tree can become an octtree (8 children per node) or a kd-tree (2 children per node). Other node
-    types could be implemented, as long as they are cuboids lined up with the axes. */
-class TreeDustGrid : public BoxDustGrid, public DustGridDensityInterface
+/** FileTreeDustGrid represents hierarchical tree dust grids for which the structure is imported
+    from a file previously written by an instance of the TreeDustGrid class. Depending on the
+    incoming data, the tree can be an octtree (8 children per node) or a kd-tree (2 children per
+    node). See TreeDustGrid for more information.
+
+    Compatibility note: the current implementation does NOT support binary trees with a subdivision
+    direction method other than alternating. No warning or error is given, but things will go wrong
+    when shooting photons.
+
+    Implementation note: the current implementation involves a substantial amount of code
+    duplication from TreeDustGrid because of complications with the inheritance structure.
+*/
+class FileTreeDustGrid : public DustGrid, public Box, public DustGridDensityInterface
 {
     /** The enumeration type indicating the search method to be used for finding the subsequent
         node while traversing the tree grid. The TopDown method (the default) always starts at the
@@ -40,45 +41,12 @@ class TreeDustGrid : public BoxDustGrid, public DustGridDensityInterface
     ENUM_VAL(SearchMethod, Bookkeeping, "bookkeeping (derive appropriate neighbor through node indices)")
     ENUM_END()
 
-    ITEM_ABSTRACT(TreeDustGrid, BoxDustGrid, "a tree dust grid")
+    ITEM_CONCRETE(FileTreeDustGrid, DustGrid, "an octtree or k-d tree dust grid imported from file")
 
-    PROPERTY_INT(minLevel, "the minimum level of grid refinement (typically 2 to 3)")
-        ATTRIBUTE_MIN_VALUE(minLevel, "0")
-        ATTRIBUTE_MAX_VALUE(minLevel, "50")
-        ATTRIBUTE_DEFAULT_VALUE(minLevel, "2")
-
-    PROPERTY_INT(maxLevel, "the maximum level of grid refinement (typically 6 to 10)")
-        ATTRIBUTE_MIN_VALUE(maxLevel, "2")
-        ATTRIBUTE_MAX_VALUE(maxLevel, "50")
-        ATTRIBUTE_DEFAULT_VALUE(maxLevel, "6")
+    PROPERTY_STRING(filename, "the name of the input file representing the tree grid")
 
     PROPERTY_ENUM(searchMethod, SearchMethod, "the search method used for traversing the tree grid")
         ATTRIBUTE_DEFAULT_VALUE(searchMethod, "Neighbor")
-
-    PROPERTY_INT(numSamples, "the number of random density samples for determining cell subdivision")
-        ATTRIBUTE_MIN_VALUE(numSamples, "10")
-        ATTRIBUTE_MAX_VALUE(numSamples, "1000")
-        ATTRIBUTE_DEFAULT_VALUE(numSamples, "100")
-
-    PROPERTY_DOUBLE(maxOpticalDepth, "the maximum mean optical depth for each dust cell")
-        ATTRIBUTE_MIN_VALUE(maxOpticalDepth, "[0")
-        ATTRIBUTE_MAX_VALUE(maxOpticalDepth, "100]")
-        ATTRIBUTE_DEFAULT_VALUE(maxOpticalDepth, "0")
-
-    PROPERTY_DOUBLE(maxMassFraction, "the maximum fraction of dust mass contained in each dust cell")
-        ATTRIBUTE_MIN_VALUE(maxMassFraction, "[0")
-        ATTRIBUTE_MAX_VALUE(maxMassFraction, "1e-2]")
-        ATTRIBUTE_DEFAULT_VALUE(maxMassFraction, "1e-6")
-
-    PROPERTY_DOUBLE(maxDensityDispersion,
-                    "the maximum density dispersion in each dust cell, as fraction of the reference density")
-        ATTRIBUTE_MIN_VALUE(maxDensityDispersion, "[0")
-        ATTRIBUTE_MAX_VALUE(maxDensityDispersion, "1]")
-        ATTRIBUTE_DEFAULT_VALUE(maxDensityDispersion, "0")
-
-    PROPERTY_BOOL(writeTree, "output data that represents the tree (can be used for importing with FileTreeGrid)")
-        ATTRIBUTE_DEFAULT_VALUE(writeTree, "false")
-        ATTRIBUTE_SILENT(writeTree)
 
     ITEM_END()
 
@@ -86,51 +54,21 @@ class TreeDustGrid : public BoxDustGrid, public DustGridDensityInterface
 
 public:
     /** The destructor deletes all nodes from the tree vector created during setup. */
-    ~TreeDustGrid();
+    ~FileTreeDustGrid();
 
 protected:
-    /** This function verifies that all attribute values have been appropriately set and actually
-        constructs the tree. The first step is to create the root node (through the factory method
-        createRoot() to be implemented in each subclass), and store it in the tree vector, which is
-        just a list of pointers to nodes). The second phase is to recursively subdivide the root
-        node and add the children at the end of the tree vector, until all nodes satisfy the
-        criteria for no further subdivision. When this task is accomplished, the function creates a
-        vector that contains the node IDs of all leaves. This is the actual dust cell vector (only
-        the leaf nodes are the actual dust cells). The function also creates a vector with the cell
-        numbers of all the nodes, i.e. the rank \f$m\f$ of the node in the ID vector if the node is
-        a leaf, and the number -1 if the node is not a leaf (and hence not a dust cell). Finally,
-        the function logs some details on the number of nodes and the number of cells, and if
-        writeFlag() returns true, it writes the distribution of the grid cells to a file. */
+    /** This function . */
     void setupSelfBefore() override;
-
-private:
-    /** This function, only to be called during the construction phase, investigates whether a node
-        should be further subdivided and also takes care of the actual subdivision. There are
-        several criteria for subdivision. The simplest criterion is the level of subdivision of the
-        node: if it is less then a minimum level, the node is always subdivided, if it higher then
-        a maximum level, there is no subdivision (these levels are input parameters). In the
-        general case, whether or not we subdivide depends on the following criterion: if the ratio
-        of the dust mass in the cell and the total dust mass, corresponding to the dust density
-        distribution \f$\rho({\bf{r}})\f$, is larger than a preset threshold (an input parameter as
-        well), the node is subdivided. The dust mass in the cell is calculated by generating
-        \f$N_{\text{random}}\f$ random positions \f${\bf{r}}_n\f$ in the node, so that the total
-        mass using the density in these points is given by \f[ M \approx \frac{\Delta x\, \Delta
-        y\, \Delta z}{N_{\text{random}}} \sum_{n=0}^{N_{\text{random}}} \rho({\bf{r}}_n), \f] If
-        the mass criterion is not satisfied, the node is not subdivided. If the conditions for
-        subdivision are met, the first task is to calculate the division point. There are two
-        options: geocentric division and barycentric division (an input flag again). In the former
-        case, the division point of the cell is just the geometric centre, i.e. \f[ {\bf{r}}_c =
-        (x_c,y_c,z_c) = \left( \frac{x_{\text{min}}+x_{\text{max}}}{2},
-        \frac{y_{\text{min}}+y_{\text{max}}}{2}, \frac{z_{\text{min}}+z_{\text{max}}}{2} \right).
-        \f] In the latter case the division point is the centre of mass, which we estimate using
-        the \f$N_{\text{random}}\f$ points generated before, \f[ {\bf{r}}_c = \frac{ \sum_n
-        \rho({\bf{r}}_n)\, {\bf{r}}_n}{ \sum_n \rho({\bf{r}}_n) }. \f] The last task is to actually
-        create the eight child nodes of the node and add them to the tree. */
-    void subdivide(TreeNode* node);
 
     //======================== Other Functions =======================
 
 public:
+    /** This function returns the dimension of the grid, which is 3 for all subclasses of this class. */
+    int dimension() const override;
+
+    /** This function returns the bounding box that encloses the dust grid. */
+    Box boundingBox() const override;
+
     /** This function returns the volume of the dust cell with cell number \f$m\f$. For a tree dust
         grid, it determines the node ID corresponding to the cell number \f$m\f$, and then simply
         calculates the volume of the corresponding cuboidal cell using \f$V = \Delta x\, \Delta y\,
@@ -225,33 +163,18 @@ private:
         vector. */
     int cellNumber(const TreeNode* node) const;
 
-protected:
-    /** This pure virtual function, to be implemented in each subclass, creates a root node of the
-        appropriate type, using a node identifier of zero and the specified spatial extent, and
-        returns a pointer to it. The caller takes ownership of the newly created object. */
-    virtual TreeNode* createRoot(const Box& extent) = 0;
-
-    /** This pure virtual function, to be implemented in each subclass, returns true if this type
-        of TreeDustGrid instance allows the use of the DustMassInBoxInterface for determining
-        subdivisions, and false if not. */
-    virtual bool canUseDmibForSubdivide() = 0;
-
     //======================== Data Members ========================
 
 private:
     // data members initialized during setup
-    Random* _random{nullptr};
-    Parallel* _parallel{nullptr};
-    DustDistribution* _dd{nullptr};
-    DustMassInBoxInterface* _dmib{nullptr};
-    double _totalmass{0.};
-    double _eps{0.};
-    int _Nnodes{0};
     vector<TreeNode*> _tree;
     vector<int> _cellnumberv;
     vector<int> _idv;
+    int _Nnodes{0};
     int _highestWriteLevel{0};
-    bool _useDmibForSubdivide{false};
+    double _eps{0.};
+    Random* _random{nullptr};
+    DustMassInBoxInterface* _dmib{nullptr};
 };
 
 //////////////////////////////////////////////////////////////////////

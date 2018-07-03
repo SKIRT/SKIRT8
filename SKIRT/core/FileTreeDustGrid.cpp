@@ -3,293 +3,194 @@
 ////       © Astronomical Observatory, Ghent University         ////
 ///////////////////////////////////////////////////////////////// */
 
-#include "TreeDustGrid.hpp"
+#include "FileTreeDustGrid.hpp"
+#include "BinTreeNode.hpp"
 #include "DustDistribution.hpp"
 #include "DustGridPath.hpp"
 #include "DustGridPlotFile.hpp"
 #include "DustMassInBoxInterface.hpp"
 #include "FatalError.hpp"
 #include "Log.hpp"
-#include "NR.hpp"
-#include "Parallel.hpp"
-#include "ParallelFactory.hpp"
-#include "PeerToPeerCommunicator.hpp"
+#include "OctTreeNode.hpp"
 #include "Random.hpp"
-#include "TreeNode.hpp"
-#include "TreeNodeBoxDensityCalculator.hpp"
-#include "TreeNodeSampleDensityCalculator.hpp"
+#include "TextInFile.hpp"
 #include "Units.hpp"
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
-TreeDustGrid::~TreeDustGrid()
+FileTreeDustGrid::~FileTreeDustGrid()
 {
     for (int l=0; l<_Nnodes; l++)
         delete _tree[l];
 }
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
-void TreeDustGrid::setupSelfBefore()
+void FileTreeDustGrid::setupSelfBefore()
 {
-    BoxDustGrid::setupSelfBefore();
-    Log* log = find<Log>();
+    DustGrid::setupSelfBefore();
 
-    // Validate attribute values
-    if (_maxLevel <= _minLevel) throw FATALERROR("Maximum tree level should be larger than minimum tree level");
+    // open the file representing the tree
+    TextInFile infile(this, _filename, "dust grid tree");
 
-    // Cache some often used values
-    // A Parallel instance is created with a limited amount of threads (4) for performance reasons
-    // or with a single thread in case of multiprocessing, to ensure consistency.
-    size_t nthreads = find<PeerToPeerCommunicator>()->isMultiProc() ? 1 : 4;
-    _random = find<Random>();
-    _parallel = find<ParallelFactory>()->parallel(nthreads);
-    _dd = find<DustDistribution>();
-    _dmib = _dd->interface<DustMassInBoxInterface>();
-    _useDmibForSubdivide = _dmib && !_maxDensityDispersion && canUseDmibForSubdivide();
-    _totalmass = _dd->mass();
-    _eps = 1e-12 * extent().widths().norm();
+    // extract the conversion factor for the coordinates
+    string line = infile.readHeaderLine("coordinate");
+    auto i1 = line.find('(');
+    auto i2 = line.find(')');
+    if (i1==string::npos || i2==string::npos || i2<=i1+1)
+        throw FATALERROR("Dust grid tree file does not specify coordinate units");
+    string unit = line.substr(i1+1, i2-i1-1);
+    double factor = find<Units>()->in("length", unit, 1.);
 
-    // Create the root node
+    // initialize temporary storage
+    enum { Unknown, BinTree, OctTree } treetype = Unknown;
+    vector<vector<int>> children;
+    Array row;
 
-    _tree.push_back(createRoot(extent()));
-
-    // Recursively subdivide the root node until all nodes satisfy the
-    // necessary criteria. When finished, set the number _Nnodes.
-
-    int currentlevel = -1;
-    unsigned int l = 0;
-    while (true)
+    // read the tree nodes from the input file
+    while (infile.readRow(row, 17))
     {
-        TreeNode* node = _tree[l];
-        int level = node->level();
-        if (level>currentlevel)
+        // extract node ID and dust cell index
+        int id = static_cast<int>(row[0]);
+        int m = static_cast<int>(row[1]);
+
+        // extract IDs of the father and child nodes
+        int father = static_cast<int>(row[8]);
+        int child0 = static_cast<int>(row[9]);
+        int child1 = static_cast<int>(row[10]);
+        int child2 = static_cast<int>(row[11]);
+        int child3 = static_cast<int>(row[12]);
+        int child4 = static_cast<int>(row[13]);
+        int child5 = static_cast<int>(row[14]);
+        int child6 = static_cast<int>(row[15]);
+        int child7 = static_cast<int>(row[16]);
+
+        // extract node extent (note: order differs)
+        Box extent(row[2]*factor, row[4]*factor, row[6]*factor, row[3]*factor, row[5]*factor, row[7]*factor);
+
+        // figure out the tree type from the root node (the first node in the list)
+        if (treetype == Unknown)
         {
-            log->info("Starting subdivision of level " + std::to_string(level) + "...");
-            currentlevel = level;
+            if (child0 == -1) throw FATALERROR("Root node in dust grid tree file has no children");
+            treetype = (child2 == -1) ? BinTree : OctTree;
         }
-        if (l%50000 == 0)
-            log->info("Subdividing node number " + std::to_string(l) + "...");
-        if (node->isChildless())
-            subdivide(node);
-        l++;
-        if (l>=_tree.size()) break;
+
+        // remember children IDs
+        if (child0 == -1)
+        {
+            children.emplace_back();  // if there are no children, add empty list
+        }
+        else
+        {
+            if (treetype == BinTree) children.emplace_back(std::initializer_list<int>{child0, child1});
+            else children.emplace_back(std::initializer_list<int>{child0, child1, child2, child3,
+                                                                  child4, child5, child6, child7});
+        }
+
+        // retrieve a pointer to the father node, which has already been created
+        TreeNode* fatherNode = father >= 0 ? _tree[father] : nullptr;
+
+        // create and add a new node of the appropriate type
+        if (treetype == BinTree) _tree.push_back(new BinTreeNode(fatherNode, id, extent));
+        else _tree.push_back(new OctTreeNode(fatherNode, id, extent));
+
+        // add the cell index for the node
+        _cellnumberv.push_back(m);
     }
+
+    // remember the number of nodes
     _Nnodes = _tree.size();
 
-    // Construction of a vector _idv that contains the node IDs of all
-    // leaves. This is the actual dust cell vector (only the leaves will
-    // eventually become valid dust cells). We also create a vector
-    // _cellnumberv with the cell numbers of all the nodes (i.e. the
-    // rank m of the node in the vector _idv if the node is a leaf, and
-    // -1 if the node is not a leaf).
+    // set our inherited box to the extent of the root node
+    setExtent(root()->extent());
+    _eps = 1e-12 * extent().widths().norm();
 
-    int m = 0;
-    _cellnumberv.resize(_Nnodes,-1);
+    // add children to the nodes
     for (int l=0; l<_Nnodes; l++)
     {
-        if (_tree[l]->isChildless())
-        {
-            _idv.push_back(l);
-            _cellnumberv[l] = m;
-            m++;
-        }
+        auto node = _tree[l];
+        for (auto child : children[l]) node->addChild(_tree[child]);
+    }
+
+    // construct a vector that contains the node IDs of all leaf nodes (i.e. actual dust cells)
+    for (int l=0; l<_Nnodes; l++)
+    {
+        if (_tree[l]->isChildless()) _idv.push_back(l);
     }
     int Ncells = _idv.size();
 
-    // Log the number of cells
-
-    log->info("Construction of the tree finished.");
+    // log the number of nodes and cells
+    Log* log = find<Log>();
+    log->info("Tree import has finished.");
     log->info("  Total number of nodes: " + std::to_string(_Nnodes));
     log->info("  Total number of leaves: " + std::to_string(Ncells));
-    vector<int> countv(_maxLevel+1);
+
+    // log the structure of the tree
+    vector<int> countv;
+    int maxLevel = 0;
     for (int m=0; m<Ncells; m++)
     {
-        TreeNode* node = _tree[_idv[m]];
+        auto node = _tree[_idv[m]];
         int level = node->level();
+        if (level > maxLevel)
+        {
+            maxLevel = level;
+            countv.resize(maxLevel+1);
+        }
         countv[level]++;
     }
     log->info("  Number of leaf cells of each level:");
-    for (int level=0; level<=_maxLevel; level++)
+    for (int level=0; level<=maxLevel; level++)
         log->info("    Level " + std::to_string(level) + ": " + std::to_string(countv[level]) + " cells");
 
-    // Determine the number of levels to be included in 3D grid output (if such output is requested)
-
+    // determine the number of levels to be included in 3D grid output (if such output is requested)
     if (writeGrid())
     {
         int cumulativeCells = 0;
-        for (_highestWriteLevel=0; _highestWriteLevel<=_maxLevel; _highestWriteLevel++)
+        for (_highestWriteLevel=0; _highestWriteLevel<=maxLevel; _highestWriteLevel++)
         {
             cumulativeCells += countv[_highestWriteLevel];
             if (cumulativeCells > 1500) break;          // experimental number
         }
-        if (_highestWriteLevel<_maxLevel)
+        if (_highestWriteLevel<maxLevel)
             log->info("Will be outputting 3D grid data up to level " + std::to_string(_highestWriteLevel) +
                       ", i.e. " + std::to_string(cumulativeCells) + " cells.");
     }
 
-    // Write tree data, if requested
-
-    if (writeTree())
-    {
-        // Get the units
-        Units* units = find<Units>();
-
-        // Create a text file
-        TextOutFile file(this, "ds_tree", "dust grid tree data");
-
-        // Write the header
-        file.writeLine("# Tree dust grid data");
-        file.writeLine("# Total number of nodes: " + std::to_string(_Nnodes));
-        file.writeLine("# Total number of leaves: " + std::to_string(Ncells));
-        file.addColumn("node ID", 'd');
-        file.addColumn("dust cell index", 'd');
-        file.addColumn("minimum x coordinate of the node (" + units->ulength() + ")", 'g', 12);
-        file.addColumn("maximum x coordinate of the node (" + units->ulength() + ")", 'g', 12);
-        file.addColumn("minimum y coordinate of the node (" + units->ulength() + ")", 'g', 12);
-        file.addColumn("maximum y coordinate of the node (" + units->ulength() + ")", 'g', 12);
-        file.addColumn("minimum z coordinate of the node (" + units->ulength() + ")", 'g', 12);
-        file.addColumn("maximum z coordinate of the node (" + units->ulength() + ")", 'g', 12);
-        file.addColumn("ID of the father node", 'd');
-        file.addColumn("ID of child node 0", 'd');
-        file.addColumn("ID of child node 1", 'd');
-        file.addColumn("ID of child node 2", 'd');
-        file.addColumn("ID of child node 3", 'd');
-        file.addColumn("ID of child node 4", 'd');
-        file.addColumn("ID of child node 5", 'd');
-        file.addColumn("ID of child node 6", 'd');
-        file.addColumn("ID of child node 7", 'd');
-
-        // Loop over all nodes
-        for (int l=0; l<_Nnodes; l++)
-        {
-            // Get the node
-            auto node = _tree[l];
-
-            // Get the node ID
-            int id = node->id();
-
-            // Get cell number
-            int m = _cellnumberv[l];
-
-            // Get extent
-            double xmin = node->xmin();
-            double xmax = node->xmax();
-            double ymin = node->ymin();
-            double ymax = node->ymax();
-            double zmin = node->zmin();
-            double zmax = node->zmax();
-
-            // Get father
-            auto father = node->father();
-            int father_id = -1;
-            if (father) father_id = father->id();
-
-            // Get children
-            std::vector<int> child_ids(8,-1);
-            if (!node->isChildless())
-            {
-                const auto& children = node->children();
-                for (size_t c=0; c<children.size(); c++)
-                {
-                    child_ids[c] = children[c]->id();
-                }
-            }
-
-            // Make row
-            vector<double> values({ static_cast<double>(id), static_cast<double>(m),
-                                    units->olength(xmin), units->olength(xmax), units->olength(ymin),
-                                    units->olength(ymax), units->olength(zmin), units->olength(zmax),
-                                    static_cast<double>(father_id),
-                                    static_cast<double>(child_ids[0]), static_cast<double>(child_ids[1]),
-                                    static_cast<double>(child_ids[2]), static_cast<double>(child_ids[3]),
-                                    static_cast<double>(child_ids[4]), static_cast<double>(child_ids[5]),
-                                    static_cast<double>(child_ids[6]), static_cast<double>(child_ids[7]) });
-            file.writeRow(values);
-        }
-    }
-
-    // Add neighbors to the tree structure (but only if required for the search method)
-
+    // add neighbors to the tree structure (if required for the search method)
     if (_searchMethod == SearchMethod::Neighbor)
     {
         log->info("Adding neighbors to the tree nodes...");
         for (int l=0; l<_Nnodes; l++) _tree[l]->addNeighbors();
         for (int l=0; l<_Nnodes; l++) _tree[l]->sortNeighbors();
     }
-}
 
-//////////////////////////////////////////////////////////////////////
+    // verify that bookkeeping method is not used with binary tree
+    if (searchMethod() == SearchMethod::Bookkeeping && treetype == BinTree)
+        throw FATALERROR("Bookkeeping method is not compatible with binary tree");
 
-void TreeDustGrid::subdivide(TreeNode* node)
-{
-    // If level is below or at minlevel, there is always subdivision, and the subdivision is "regular"
-    int level = node->level();
-    if (level <= _minLevel)
-    {
-        node->createChildren(_tree.size());
-        _tree.insert(_tree.end(), node->children().begin(), node->children().end());
-    }
-
-    // if level is below maxlevel, there may be subdivision depending on various stopping criteria
-    else if (level < _maxLevel)
-    {
-        // construct an appropriate density calculator to estimate properties for stopping criteria and division
-        TreeNodeDensityCalculator* calc;
-        if (_useDmibForSubdivide)
-        {
-            // use the DustMassInBox interface
-            calc = new TreeNodeBoxDensityCalculator(_dmib, node);
-        }
-        else
-        {
-            // sample the density in the cell
-            TreeNodeSampleDensityCalculator* sampleCalc =
-                    new TreeNodeSampleDensityCalculator(_random, _numSamples, _dd, node);
-            _parallel->call(sampleCalc, _numSamples);
-            calc = sampleCalc;
-        }
-
-        // if no stopping criteria are enabled, we keep subdividing indefinitely
-        bool needDivision = (_maxOpticalDepth == 0 && _maxMassFraction == 0 && _maxDensityDispersion == 0);
-
-        // otherwise, we subdivide if at least one stopping criterion is not satisfied
-
-        // check mass fraction
-        if (!needDivision && _maxMassFraction > 0)
-        {
-            double massfraction = calc->mass() / _totalmass;
-            if (massfraction >= _maxMassFraction) needDivision = true;
-        }
-
-        // check optical depth
-        if (!needDivision && _maxOpticalDepth > 0)
-        {
-            double opticaldepth = calc->opticalDepth();
-            if (opticaldepth >= _maxOpticalDepth) needDivision = true;
-        }
-
-        // check density dispersion fraction
-        if (!needDivision && _maxDensityDispersion > 0)
-        {
-            double densdispfraction = calc->densityDispersion();
-            if (densdispfraction >= _maxDensityDispersion) needDivision = true;
-        }
-
-        if (needDivision)
-        {
-            // there is subdivision, possibly using calculated properties such as barycenter
-            node->createChildren(_tree.size(), calc);
-            _tree.insert(_tree.end(), node->children().begin(), node->children().end());
-        }
-
-        delete calc;
-    }
+    // cache pointers used elsewhere
+    _random = find<Random>();
+    _dmib = find<DustDistribution>()->interface<DustMassInBoxInterface>();
 }
 
 ////////////////////////////////////////////////////////////////////
 
-double TreeDustGrid::volume(int m) const
+int FileTreeDustGrid::dimension() const
+{
+    return 3;
+}
+
+////////////////////////////////////////////////////////////////////
+
+Box FileTreeDustGrid::boundingBox() const
+{
+    return extent();
+}
+
+////////////////////////////////////////////////////////////////////
+
+double FileTreeDustGrid::volume(int m) const
 {
     if (m<0 || m>numCells())
         throw FATALERROR("Invalid cell number: " + std::to_string(m));
@@ -297,38 +198,38 @@ double TreeDustGrid::volume(int m) const
     return node->xwidth() * node->ywidth() * node->zwidth();
 }
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
-int TreeDustGrid::numCells() const
+int FileTreeDustGrid::numCells() const
 {
     return _idv.size();
 }
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
-int TreeDustGrid::whichCell(Position bfr) const
+int FileTreeDustGrid::whichCell(Position bfr) const
 {
     const TreeNode* node = root()->whichNode(bfr);
     return node ? cellNumber(node) : -1;
 }
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
-Position TreeDustGrid::centralPositionInCell(int m) const
+Position FileTreeDustGrid::centralPositionInCell(int m) const
 {
     return Position(getNode(m)->extent().center());
 }
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
-Position TreeDustGrid::randomPositionInCell(int m) const
+Position FileTreeDustGrid::randomPositionInCell(int m) const
 {
     return _random->position(getNode(m)->extent());
 }
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
-void TreeDustGrid::path(DustGridPath* path) const
+void FileTreeDustGrid::path(DustGridPath* path) const
 {
     // Initialize the path
     path->clear();
@@ -602,26 +503,26 @@ void TreeDustGrid::path(DustGridPath* path) const
     // ------------------------------
 }
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
-vector<SimulationItem*> TreeDustGrid::interfaceCandidates(const std::type_info& interfaceTypeInfo)
+vector<SimulationItem*> FileTreeDustGrid::interfaceCandidates(const std::type_info& interfaceTypeInfo)
 {
     if (interfaceTypeInfo == typeid(DustGridDensityInterface) && !_dmib)
         return vector<SimulationItem*>();
-    return BoxDustGrid::interfaceCandidates(interfaceTypeInfo);
+    return DustGrid::interfaceCandidates(interfaceTypeInfo);
 }
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
-double TreeDustGrid::density(int h, int m) const
+double FileTreeDustGrid::density(int h, int m) const
 {
     TreeNode* node = getNode(m);
     return _dmib->massInBox(h, node->extent()) / node->volume();
 }
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
-void TreeDustGrid::write_xy(DustGridPlotFile* outfile) const
+void FileTreeDustGrid::write_xy(DustGridPlotFile* outfile) const
 {
     // Output the root cell and all leaf cells that are close to the section plane
     outfile->writeRectangle(xmin(), ymin(), xmax(), ymax());
@@ -636,9 +537,9 @@ void TreeDustGrid::write_xy(DustGridPlotFile* outfile) const
     }
 }
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
-void TreeDustGrid::write_xz(DustGridPlotFile* outfile) const
+void FileTreeDustGrid::write_xz(DustGridPlotFile* outfile) const
 {
     // Output the root cell and all leaf cells that are close to the section plane
     outfile->writeRectangle(xmin(), zmin(), xmax(), zmax());
@@ -653,9 +554,9 @@ void TreeDustGrid::write_xz(DustGridPlotFile* outfile) const
     }
 }
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
-void TreeDustGrid::write_yz(DustGridPlotFile* outfile) const
+void FileTreeDustGrid::write_yz(DustGridPlotFile* outfile) const
 {
     // Output the root cell and all leaf cells that are close to the section plane
     outfile->writeRectangle(ymin(), zmin(), ymax(), zmax());
@@ -670,9 +571,9 @@ void TreeDustGrid::write_yz(DustGridPlotFile* outfile) const
     }
 }
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
-void TreeDustGrid::write_xyz(DustGridPlotFile* outfile) const
+void FileTreeDustGrid::write_xyz(DustGridPlotFile* outfile) const
 {
     // Output all leaf cells up to a certain level
     int Ncells = numCells();
@@ -684,25 +585,25 @@ void TreeDustGrid::write_xyz(DustGridPlotFile* outfile) const
     }
 }
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
-TreeNode* TreeDustGrid::root() const
+TreeNode* FileTreeDustGrid::root() const
 {
     return _tree[0];
 }
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
-TreeNode* TreeDustGrid::getNode(int m) const
+TreeNode* FileTreeDustGrid::getNode(int m) const
 {
     return _tree[_idv[m]];
 }
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
-int TreeDustGrid::cellNumber(const TreeNode* node) const
+int FileTreeDustGrid::cellNumber(const TreeNode* node) const
 {
     return _cellnumberv[node->id()];
 }
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////

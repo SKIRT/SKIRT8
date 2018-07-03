@@ -12,11 +12,10 @@ class SimulationItem;
 
 ////////////////////////////////////////////////////////////////////
 
-/** This class allows reading one or more sets of floating point values from the input text file
-    specified in the constructor. The values may be provided as a single sequence in free form,
-    disregarding line breaks, or they may be organized in columns, forming a table. An
-    informational message is logged when the file is opened, and the file is automatically closed
-    when the object is destructed. */
+/** This class allows reading floating point values from the input text file specified in the
+    constructor. The values should be organized in columns, forming a table. An informational
+    message is logged when the file is opened, and the file is automatically closed when the object
+    is destructed. */
 class TextInFile
 {
     //=============== Construction - Destruction  ==================
@@ -32,6 +31,13 @@ public:
     TextInFile(const SimulationItem* item, string filename, string description);
 
     //====================== Other functions =======================
+
+    /** This function looks through the header at the current position in the file, and returns the
+        first header line containing the specified string, or the empty string if no such line is
+        found. In this context, a header is defined as consecutive set of lines starting with a
+        hash. A line not starting with a hash (including an empty line) ends the header and will
+        not be consumed by this function. */
+    string readHeaderLine(string find);
 
     /** This function reads the next row from a column text file and stores the resulting values in
         the array passed to the function by reference. The function first skips empty lines and

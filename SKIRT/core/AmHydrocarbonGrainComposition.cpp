@@ -10,8 +10,8 @@
 AmHydrocarbonGrainComposition::AmHydrocarbonGrainComposition(SimulationItem *parent, double bulkDensity)
 {
     parent->addChild(this);
+    setBulkDensity(bulkDensity);  // must be set before calling loadLogHeatCapacityGrid() !!
     setup();
-    setBulkDensity(bulkDensity);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -20,7 +20,7 @@ void AmHydrocarbonGrainComposition::setupSelfBefore()
 {
     GrainComposition::setupSelfBefore();
 
-    setBulkDensity(1600.);
+    if (!bulkDensity()) setBulkDensity(1600.);
     loadLogHeatCapacityGrid("GrainComposition/DustEM/hcap/C_CM20.DAT");
     loadOpticalGrid("GrainComposition/DustEM/oprop/LAMBDA.DAT",
                     "GrainComposition/DustEM/oprop/Q_CM20.DAT",

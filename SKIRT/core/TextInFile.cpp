@@ -23,6 +23,19 @@ TextInFile::TextInFile(const SimulationItem* item, string filename, string descr
 
 ////////////////////////////////////////////////////////////////////
 
+string TextInFile::readHeaderLine(string find)
+{
+    string line;
+    while(_in.peek() == '#')
+    {
+        getline(_in,line);
+        if (line.find(find) != string::npos) return line;
+    }
+    return string();
+}
+
+////////////////////////////////////////////////////////////////////
+
 bool TextInFile::readRow(Array& values, size_t ncols, size_t noptcols)
 {
     // read new line until it is non-empty and non-comment

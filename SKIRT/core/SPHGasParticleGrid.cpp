@@ -93,9 +93,11 @@ SPHGasParticleGrid::SPHGasParticleGrid(const vector<SPHGasParticle>& pv, int gri
     : _m(gridsize)
 {
     // build the grids in each spatial direction
-    makegrid(pv, 1, gridsize, _xgrid, _xmin, _xmax);
-    makegrid(pv, 2, gridsize, _ygrid, _ymin, _ymax);
-    makegrid(pv, 3, gridsize, _zgrid, _zmin, _zmax);
+    double xmin, ymin, zmin, xmax, ymax, zmax;
+    makegrid(pv, 1, gridsize, _xgrid, xmin, xmax);
+    makegrid(pv, 2, gridsize, _ygrid, ymin, ymax);
+    makegrid(pv, 3, gridsize, _zgrid, zmin, zmax);
+    setExtent(xmin, ymin, zmin, xmax, ymax, zmax);
 
     // make room for m*m*m cells
     _listv.resize(gridsize*gridsize*gridsize);

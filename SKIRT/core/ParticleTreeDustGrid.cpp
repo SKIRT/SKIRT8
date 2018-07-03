@@ -310,7 +310,7 @@ double ParticleTreeDustGrid::density(int h, int m) const
 void ParticleTreeDustGrid::write_xy(DustGridPlotFile* outfile) const
 {
     // Output the root cell and all leaf cells that are close to the section plane
-    outfile->writeRectangle(_xmin, _ymin, _xmax, _ymax);
+    outfile->writeRectangle(xmin(), ymin(), xmax(), ymax());
     int Ncells = numCells();
     for (int m=0; m<Ncells; m++)
     {
@@ -327,7 +327,7 @@ void ParticleTreeDustGrid::write_xy(DustGridPlotFile* outfile) const
 void ParticleTreeDustGrid::write_xz(DustGridPlotFile* outfile) const
 {
     // Output the root cell and all leaf cells that are close to the section plane
-    outfile->writeRectangle(_xmin, _zmin, _xmax, _zmax);
+    outfile->writeRectangle(xmin(), zmin(), xmax(), zmax());
     int Ncells = numCells();
     for (int m=0; m<Ncells; m++)
     {
@@ -344,7 +344,7 @@ void ParticleTreeDustGrid::write_xz(DustGridPlotFile* outfile) const
 void ParticleTreeDustGrid::write_yz(DustGridPlotFile* outfile) const
 {
     // Output the root cell and all leaf cells that are close to the section plane
-    outfile->writeRectangle(_ymin, _zmin, _ymax, _zmax);
+    outfile->writeRectangle(ymin(), zmin(), ymax(), zmax());
     int Ncells = numCells();
     for (int m=0; m<Ncells; m++)
     {

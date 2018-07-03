@@ -107,3 +107,12 @@ void HomogeneousTransform::transform(double x, double y, double z, double w,
 }
 
 //////////////////////////////////////////////////////////////////////
+
+Vec HomogeneousTransform::transform(Vec p) const
+{
+    double x, y, z, w;
+    transform(p.x(), p.y(), p.z(), 1.,  x, y, z, w);
+    return Vec(x/w, y/w, z/w);
+}
+
+//////////////////////////////////////////////////////////////////////

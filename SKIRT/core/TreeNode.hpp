@@ -68,6 +68,10 @@ public:
     //============= Functions implemented here =============
 
 public:
+    /** This function adds the specied child to the end of the child list. It is intended for use
+        only when a tree is being imported from external data. */
+    void addChild(TreeNode* child);
+
     /** This function returns a pointer to the father of the node. */
     TreeNode* father() const;
 

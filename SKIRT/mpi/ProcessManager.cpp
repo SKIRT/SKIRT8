@@ -25,9 +25,9 @@ namespace
 #ifdef BUILD_WITH_MPI
 namespace
 {
-    // When an Array with more than INT_MAX elements is to be communicated,
-    // the message will be broken up into pieces of the following size
-    const int maxMessageSize = 2000000000;
+    // Large messages will be broken up into pieces of the following size
+    // (slightly under 2GB when data type is double)
+    const size_t maxMessageSize = 250*1000*1000;
 
     // Creates (and commits!) a datatype consisting of blocks of a certain length, displaced according to a list of
     // displacements in units of the block length. The created datatype should be freed when it is no longer needed.
@@ -274,11 +274,10 @@ void ProcessManager::sum(double* my_array, size_t nvalues, int root)
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    const int maxMessageSize = 2000000000;
     size_t remaining = nvalues;
     double* my_array_position = my_array;
 
-    while (remaining >= INT_MAX)
+    while (remaining > maxMessageSize)
     {
         if (rank == root)
             MPI_Reduce(MPI_IN_PLACE, my_array_position, maxMessageSize, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD);
@@ -303,7 +302,7 @@ void ProcessManager::sumAll(double* my_array, size_t nvalues)
 {
 #ifdef BUILD_WITH_MPI
     size_t remaining = nvalues;
-    while (remaining >= INT_MAX)
+    while (remaining > maxMessageSize)
     {
         MPI_Allreduce(MPI_IN_PLACE, my_array + (nvalues-remaining), maxMessageSize, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         remaining -= maxMessageSize;
@@ -331,7 +330,7 @@ void ProcessManager::broadcast(double* my_array, size_t nvalues, int root)
 {
 #ifdef BUILD_WITH_MPI
     size_t remaining = nvalues;
-    while (remaining >= INT_MAX)
+    while (remaining > maxMessageSize)
     {
         MPI_Bcast(my_array + (nvalues-remaining), maxMessageSize, MPI_DOUBLE, root, MPI_COMM_WORLD);
         remaining -= maxMessageSize;

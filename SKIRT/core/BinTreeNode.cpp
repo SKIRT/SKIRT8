@@ -22,7 +22,7 @@
 //////////////////////////////////////////////////////////////////////
 
 BinTreeNode::BinTreeNode(TreeNode* father, int id, const Box& extent)
-    : TreeNode(father, id, extent)
+    : TreeNode(father, id, extent), _dir(level() % 3)
 {
 }
 
@@ -43,23 +43,23 @@ void BinTreeNode::createChildrenSplitDir(int id, int dir)
     {
     case XDIR:
         {
-            double xc = 0.5*(_xmin+_xmax);
-            CHILD_0 = createNode(this, id++, Box(_xmin, _ymin, _zmin,    xc, _ymax, _zmax));
-            CHILD_1 = createNode(this, id++, Box(   xc, _ymin, _zmin, _xmax, _ymax, _zmax));
+            double xc = center().x();
+            CHILD_0 = createNode(this, id++, Box(xmin(), ymin(), zmin(),     xc, ymax(), zmax()));
+            CHILD_1 = createNode(this, id++, Box(    xc, ymin(), zmin(), xmax(), ymax(), zmax()));
         }
         break;
     case YDIR:
         {
-            double yc = 0.5*(_ymin+_ymax);
-            CHILD_0 = createNode(this, id++, Box(_xmin, _ymin, _zmin, _xmax,    yc, _zmax));
-            CHILD_1 = createNode(this, id++, Box(_xmin,    yc, _zmin, _xmax, _ymax, _zmax));
+            double yc = center().y();
+            CHILD_0 = createNode(this, id++, Box(xmin(), ymin(), zmin(), xmax(),     yc, zmax()));
+            CHILD_1 = createNode(this, id++, Box(xmin(),     yc, zmin(), xmax(), ymax(), zmax()));
         }
         break;
     case ZDIR:
         {
-            double zc = 0.5*(_zmin+_zmax);
-            CHILD_0 = createNode(this, id++, Box(_xmin, _ymin, _zmin, _xmax, _ymax,    zc));
-            CHILD_1 = createNode(this, id++, Box(_xmin, _ymin,    zc, _xmax, _ymax, _zmax));
+            double zc = center().z();
+            CHILD_0 = createNode(this, id++, Box(xmin(), ymin(), zmin(), xmax(), ymax(),     zc));
+            CHILD_1 = createNode(this, id++, Box(xmin(), ymin(),     zc, xmax(), ymax(), zmax()));
         }
         break;
     default:

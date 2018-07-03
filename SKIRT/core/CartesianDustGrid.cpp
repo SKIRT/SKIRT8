@@ -19,9 +19,9 @@ void CartesianDustGrid::setupSelfAfter()
     _Nx = _meshX->numBins();
     _Ny = _meshY->numBins();
     _Nz = _meshZ->numBins();
-    _xv = _meshX->mesh()*(_xmax-_xmin) + _xmin;
-    _yv = _meshY->mesh()*(_ymax-_ymin) + _ymin;
-    _zv = _meshZ->mesh()*(_zmax-_zmin) + _zmin;
+    _xv = _meshX->mesh()*(xmax()-xmin()) + xmin();
+    _yv = _meshY->mesh()*(ymax()-ymin()) + ymin();
+    _zv = _meshZ->mesh()*(zmax()-zmin()) + zmin();
 
     // cache the random number generator
     _random = find<Random>();
@@ -88,80 +88,80 @@ void CartesianDustGrid::path(DustGridPath* path) const
     // move the photon package to the first grid cell that it will
     // pass. If it does not pass any grid cell, return an empty path.
 
-    if (x<_xmin)
+    if (x<xmin())
     {
         if (kx<=0.0) return path->clear();
         else
         {
-            ds = (_xmin-x)/kx;
+            ds = (xmin()-x)/kx;
             path->addSegment(-1,ds);
-            x = _xmin + 1e-8*(_xv[1]-_xv[0]);
+            x = xmin() + 1e-8*(_xv[1]-_xv[0]);
             y += ky*ds;
             z += kz*ds;
         }
     }
-    else if (x>_xmax)
+    else if (x>xmax())
     {
         if (kx>=0.0) return path->clear();
         else
         {
-            ds = (_xmax-x)/kx;
+            ds = (xmax()-x)/kx;
             path->addSegment(-1,ds);
-            x = _xmax - 1e-8*(_xv[_Nx]-_xv[_Nx-1]);
+            x = xmax() - 1e-8*(_xv[_Nx]-_xv[_Nx-1]);
             y += ky*ds;
             z += kz*ds;
         }
     }
-    if (y<_ymin)
+    if (y<ymin())
     {
         if (ky<=0.0) return path->clear();
         else
         {
-            ds = (_ymin-y)/ky;
+            ds = (ymin()-y)/ky;
             path->addSegment(-1,ds);
             x += kx*ds;
-            y = _ymin + 1e-8*(_yv[1]-_yv[0]);
+            y = ymin() + 1e-8*(_yv[1]-_yv[0]);
             z += kz*ds;
         }
     }
-    else if (y>_ymax)
+    else if (y>ymax())
     {
         if (ky>=0.0) return path->clear();
         else
         {
-            ds = (_ymax-y)/ky;
+            ds = (ymax()-y)/ky;
             path->addSegment(-1,ds);
             x += kx*ds;
-            y = _ymax - 1e-8*(_yv[_Ny]-_yv[_Ny-1]);
+            y = ymax() - 1e-8*(_yv[_Ny]-_yv[_Ny-1]);
             z += kz*ds;
         }
     }
-    if (z<_zmin)
+    if (z<zmin())
     {
         if (kz<=0.0) return path->clear();
         else
         {
-            ds = (_zmin-z)/kz;
+            ds = (zmin()-z)/kz;
             path->addSegment(-1,ds);
             x += kx*ds;
             y += ky*ds;
-            z = _zmin + 1e-8*(_zv[1]-_zv[0]);
+            z = zmin() + 1e-8*(_zv[1]-_zv[0]);
         }
     }
-    else if (z>_zmax)
+    else if (z>zmax())
     {
         if (kz>=0.0) return path->clear();
         else
         {
-            ds = (_zmax-z)/kz;
+            ds = (zmax()-z)/kz;
             path->addSegment(-1,ds);
             x += kx*ds;
             y += ky*ds;
-            z = _zmax - 1e-8*(_zv[_Nz]-_zv[_Nz-1]);
+            z = zmax() - 1e-8*(_zv[_Nz]-_zv[_Nz-1]);
         }
     }
 
-    if (x<_xmin || x>_xmax || y<_ymin || y>_ymax || z<_zmin || z>_zmax) return path->clear();
+    if (!contains(x,y,z)) return path->clear();
 
     // Now determine which grid cell we are in...
 
@@ -226,24 +226,24 @@ void CartesianDustGrid::path(DustGridPath* path) const
 
 void CartesianDustGrid::write_xy(DustGridPlotFile* outfile) const
 {
-    for (int i=0; i<=_Nx; i++) outfile->writeLine(_xv[i], _ymin, _xv[i], _ymax);
-    for (int j=0; j<=_Ny; j++) outfile->writeLine(_xmin, _yv[j], _xmax, _yv[j]);
+    for (int i=0; i<=_Nx; i++) outfile->writeLine(_xv[i], ymin(), _xv[i], ymax());
+    for (int j=0; j<=_Ny; j++) outfile->writeLine(xmin(), _yv[j], xmax(), _yv[j]);
 }
 
 //////////////////////////////////////////////////////////////////////
 
 void CartesianDustGrid::write_xz(DustGridPlotFile* outfile) const
 {
-    for (int i=0; i<=_Nx; i++) outfile->writeLine(_xv[i], _zmin, _xv[i], _zmax);
-    for (int k=0; k<=_Nz; k++) outfile->writeLine(_xmin, _zv[k], _xmax, _zv[k]);
+    for (int i=0; i<=_Nx; i++) outfile->writeLine(_xv[i], zmin(), _xv[i], zmax());
+    for (int k=0; k<=_Nz; k++) outfile->writeLine(xmin(), _zv[k], xmax(), _zv[k]);
 }
 
 //////////////////////////////////////////////////////////////////////
 
 void CartesianDustGrid::write_yz(DustGridPlotFile* outfile) const
 {
-    for (int j=0; j<=_Ny; j++) outfile->writeLine(_yv[j], _zmin, _yv[j], _zmax);
-    for (int k=0; k<=_Nz; k++) outfile->writeLine(_ymin, _zv[k], _ymax, _zv[k]);
+    for (int j=0; j<=_Ny; j++) outfile->writeLine(_yv[j], zmin(), _yv[j], zmax());
+    for (int k=0; k<=_Nz; k++) outfile->writeLine(ymin(), _zv[k], ymax(), _zv[k]);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -252,13 +252,13 @@ void CartesianDustGrid::write_xyz(DustGridPlotFile* outfile) const
 {
     for (int i=0; i<=_Nx; i++)
         for (int j=0; j<=_Ny; j++)
-            outfile->writeLine(_xv[i], _yv[j], _zmin, _xv[i], _yv[j], _zmax);
+            outfile->writeLine(_xv[i], _yv[j], zmin(), _xv[i], _yv[j], zmax());
     for (int i=0; i<=_Nx; i++)
         for (int k=0; k<=_Nz; k++)
-            outfile->writeLine(_xv[i], _ymin, _zv[k], _xv[i], _ymax, _zv[k]);
+            outfile->writeLine(_xv[i], ymin(), _zv[k], _xv[i], ymax(), _zv[k]);
     for (int j=0; j<=_Ny; j++)
         for (int k=0; k<=_Nz; k++)
-            outfile->writeLine(_xmin, _yv[j], _zv[k], _xmax, _yv[j], _zv[k]);
+            outfile->writeLine(xmin(), _yv[j], _zv[k], xmax(), _yv[j], _zv[k]);
 }
 
 //////////////////////////////////////////////////////////////////////

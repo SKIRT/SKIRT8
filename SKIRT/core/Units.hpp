@@ -52,6 +52,11 @@ public:
         specified physical quantity is unknown. */
     string unit(string qty) const;
 
+    /** This function converts a physical value from the specified units to internal program units.
+        If the specified combination is not present in the unit definition, the function throws an
+        exception. */
+    double in(string qty, string unit, double value) const;
+
     /** This function converts a physical value from internal SI units to the output units adopted
         by the program. The name of the physical quantity must be specified in all lowercase and
         without any spaces. If the specified combination of physical quantity and unit is unknown,

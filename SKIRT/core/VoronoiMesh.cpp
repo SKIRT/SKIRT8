@@ -41,14 +41,17 @@ namespace VoronoiMesh_Private
             // get the minimal and maximal coordinates of the box enclosing the cell
             vector<double> coords;
             cell.vertices(_r.x(),_r.y(),_r.z(), coords);
-            _xmin = DBL_MAX;  _ymin = DBL_MAX;  _zmin = DBL_MAX;
-            _xmax = -DBL_MAX; _ymax = -DBL_MAX; _zmax = -DBL_MAX;
+            double xmin = DBL_MAX;  double ymin = DBL_MAX;  double zmin = DBL_MAX;
+            double xmax = -DBL_MAX; double ymax = -DBL_MAX; double zmax = -DBL_MAX;
             int n = coords.size();
             for (int i=0; i<n; i+=3)
             {
-                _xmin = min(_xmin,coords[i]); _ymin = min(_ymin,coords[i+1]); _zmin = min(_zmin,coords[i+2]);
-                _xmax = max(_xmax,coords[i]); _ymax = max(_ymax,coords[i+1]); _zmax = max(_zmax,coords[i+2]);
+                xmin = min(xmin,coords[i]); ymin = min(ymin,coords[i+1]); zmin = min(zmin,coords[i+2]);
+                xmax = max(xmax,coords[i]); ymax = max(ymax,coords[i+1]); zmax = max(zmax,coords[i+2]);
             }
+
+            // set our inherited Box to this bounding box
+            setExtent(xmin, ymin, zmin, xmax, ymax, zmax);
 
             // copy a list of neighboring cell/particle ids
             cell.neighbors(_neighbors);

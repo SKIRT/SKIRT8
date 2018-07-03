@@ -16,6 +16,7 @@
 #include "AdaptiveMeshGeometry.hpp"
 #include "AdaptiveMeshStellarComp.hpp"
 #include "AllCellsDustLib.hpp"
+#include "AllSkyInstrument.hpp"
 #include "AmHydrocarbonGrainComposition.hpp"
 #include "Benchmark1DDustMix.hpp"
 #include "Benchmark2DDustMix.hpp"
@@ -31,6 +32,7 @@
 #include "CombineGeometryDecorator.hpp"
 #include "CompDustDistribution.hpp"
 #include "ConfigurableDustMix.hpp"
+#include "ConicalPointGeometry.hpp"
 #include "ConicalShellGeometry.hpp"
 #include "CubBackgroundGeometry.hpp"
 #include "CubicSplineSmoothingKernel.hpp"
@@ -57,6 +59,7 @@
 #include "FileGrainComposition.hpp"
 #include "FileMesh.hpp"
 #include "FileSED.hpp"
+#include "FileTreeDustGrid.hpp"
 #include "FileWavelengthGrid.hpp"
 #include "FoamGeometryDecorator.hpp"
 #include "ForsteriteGrainComposition.hpp"
@@ -223,6 +226,7 @@ SimulationItemRegistry::SimulationItemRegistry(string version, string format)
     ItemRegistry::add<SimpleInstrument>();
     ItemRegistry::add<FullInstrument>();
     ItemRegistry::add<PerspectiveInstrument>();
+    ItemRegistry::add<AllSkyInstrument>();
     ItemRegistry::add<MultiFrameInstrument>();
     ItemRegistry::add<InstrumentFrame>();
 
@@ -282,6 +286,7 @@ SimulationItemRegistry::SimulationItemRegistry(string version, string format)
 
     // anistropic geometries
     ItemRegistry::add<LaserGeometry>();
+    ItemRegistry::add<ConicalPointGeometry>();
     ItemRegistry::add<NetzerAccretionDiskGeometry>();
     ItemRegistry::add<StellarSurfaceGeometry>();
     ItemRegistry::add<SpheBackgroundGeometry>();
@@ -372,6 +377,7 @@ SimulationItemRegistry::SimulationItemRegistry(string version, string format)
     ItemRegistry::add<TreeDustGrid>();
     ItemRegistry::add<OctTreeDustGrid>();
     ItemRegistry::add<BinTreeDustGrid>();
+    ItemRegistry::add<FileTreeDustGrid>();
     ItemRegistry::add<ParticleTreeDustGrid>();
     ItemRegistry::add<VoronoiDustGrid>();
     ItemRegistry::add<AdaptiveMeshDustGrid>();
