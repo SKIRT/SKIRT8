@@ -35,6 +35,7 @@ void PanDustSystem::setupSelfBefore()
         _writeEmissivity = false;
         _writeTemperature = false;
         _writeISRF = false;
+        _writeSpectralAbsorption = false;
     }
     // if there is dust emission, make sure that there is a dust library as well
     else
@@ -643,6 +644,58 @@ void PanDustSystem::write() const
                 for (auto J : Jv) values.push_back(J);
                 file.writeRow(values);
             }
+        }
+    }
+
+    // If requested, output the absorption spectrum in every dust cell to a data file
+    if (_writeSpectralAbsorption)
+    {
+        // Get units and wavelength grid objects
+        Units* units = find<Units>();
+        WavelengthGrid* lambdagrid = find<WavelengthGrid>();
+
+        // Create a text file
+        TextOutFile file(this, "ds_specabs", "absorption spectra");
+
+        // Write the header
+        file.writeLine("# Absorption spectra for all dust cells");
+        for (int ell=0; ell<_Nlambda; ell++)
+        {
+            // Skip wavelengths greater than 25 micron
+            double wavelength = lambdagrid->lambda(ell);
+            if (wavelength * 1e6 > 25.) continue;
+
+            file.addColumn("Absorbed luminosity (W/m) for lambda = "
+                           + StringUtils::toString(units->owavelength(lambdagrid->lambda(ell)), 'g')
+                           + " " + units->uwavelength(), 'g');
+        }
+
+        // Write one line for each dust cell, containing all
+        int Ncells = dustGrid()->numCells();
+        for (int m=0; m<Ncells; m++)
+        {
+            // Initialize a vector to contain the values for this line
+            vector<double> values;
+
+            // Loop over the wavelengths
+            for (int ell=0; ell<_Nlambda; ell++)
+            {
+                // Skip wavelengths greater than 25 micron
+                double wavelength = lambdagrid->lambda(ell);
+                if (wavelength * 1e6 > 25.) continue;
+
+                // Get the wavelength delta
+                double dlambda = lambdagrid->dlambda(ell);
+
+                // Get the monochromatic (spectral) luminosity
+                // Labs is only callable on cells assigned to this process, and after sumResults
+                // OK: sumResults is called by calculatedustemission()
+                double value = absorbedLuminosity(m, ell) / dlambda;
+                values.push_back(value);
+            }
+
+            // Write the line of values
+            file.writeRow(values);
         }
     }
 }
