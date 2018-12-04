@@ -13,17 +13,22 @@
 /** The WeingartnerDraineDustMix class is a subclass of the MultiGrainDustMix class and represents
     realistic dust mixtures consisting of populations of graphite, silicate and PAH dust grains.
     The size distributions of each of these grains are fitted in such a way that they can reproduce
-    the extinction curve of the Milky Way or the LMC. For details we refer to Weingartner & Draine
-    (2001, ApJ, 548, 296) and Li & Draine (2001, ApJ, 554, 778). The graphite, silicate, and PAH
-    populations (for both neutral and ionized PAHs) can be subdivided into \f$N_{\text{gra}}\f$,
-    \f$N_{\text{sil}}\f$, and \f$N_{\text{PAH}}\f$ subpopulations, each corresponding to a distinct
-    grain size bin. */
+    the extinction curve of the Milky Way, the LMC, or the SMC. For details we refer to Weingartner
+    & Draine (2001, ApJ, 548, 296) and Li & Draine (2001, ApJ, 554, 778).
+
+    As noted at the end of section 3 in Weingartner & Draine (2001), the absence of PAHs in the SMC
+    dust model might be a special attribute of the specific sight line, so it may be unrealistic.
+
+    The graphite, silicate, and PAH populations (for both neutral and ionized PAHs) can be
+    subdivided into \f$N_{\text{gra}}\f$, \f$N_{\text{sil}}\f$, and \f$N_{\text{PAH}}\f$
+    subpopulations, each corresponding to a distinct grain size bin. */
 class WeingartnerDraineDustMix : public MultiGrainDustMix
 {
     /** The enumeration type indicating the environment for the Weingartner-Draine dust. */
-    ENUM_DEF(Environment, MilkyWay, LMC)
+    ENUM_DEF(Environment, MilkyWay, LMC, SMC)
     ENUM_VAL(Environment, MilkyWay, "the Milky Way")
     ENUM_VAL(Environment, LMC, "the Large Magellanic Cloud")
+    ENUM_VAL(Environment, SMC, "the Small Magellanic Cloud")
     ENUM_END()
 
     ITEM_CONCRETE(WeingartnerDraineDustMix, MultiGrainDustMix, "a Weingartner & Draine multi-component dust mix")
@@ -54,13 +59,14 @@ protected:
         classes. It is assumed that 50% of the PAH grains are neutral and 50% are ionized. The
         grain size distributions for the various populations are given as complicated analytical
         formulas with predefined constant parameters depending on the selected environment (Milky
-        Way or LMC). For the graphite and silicate populations, the distribution is a power-law
-        function with a curvature and an exponential cutoff. For the PAH populations, it is the sum
-        of two log-normal distributions, cut off at some upper grain size. This represents the
-        common distribution for neutral and ionized PAH grains; to obtain the distribution for one
-        of both subpopulations, we need to divide by two (assuming an ionization fraction of 50%).
-        The exact forms of the grain size distribution functions can be found in Weingartner &
-        Draine (2001, ApJ, 548, 296). */
+        Way, LMC or SMC). For the graphite and silicate populations, the distribution is a
+        power-law function with a curvature and an exponential cutoff. For the PAH populations, it
+        is the sum of two log-normal distributions, cut off at some upper grain size. This
+        represents the common distribution for neutral and ionized PAH grains; to obtain the
+        distribution for one of both subpopulations, we need to divide by two (assuming an
+        ionization fraction of 50%). For SMC, only graphite and silicate enter the dust mix. The
+        exact forms of the grain size distribution functions can be found in Weingartner & Draine
+        (2001, ApJ, 548, 296). */
     void setupSelfBefore() override;
 };
 

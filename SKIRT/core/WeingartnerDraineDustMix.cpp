@@ -125,6 +125,30 @@ namespace
         const double bc[2] = {0.75e-5, 0.25e-5}; // 1/6 of Milky Way values
         return 0.5 * dnda_pah(a, sigma, a0, bc); // 50% of the PAH grains are neutral, 50% are ionized
     }
+
+    // grain size distributions for SMC environment
+    //   -> Line 7 of Table 3 p305 in Weingartner & Draine 2001, ApJ, 548, 296
+    //   -> For PAHs, total abundance is set to zero
+    //      Line 7 of Table 3: b_C = 0.0
+    double dnda_gra_smc(double a)
+    {
+        const double C = 8.36e-14;
+        const double at = 0.0190e-6;
+        const double ac = 0.522e-6;
+        const double alpha = -2.79;
+        const double beta = 1.12;
+        return dnda_grasil(a, C, at, ac, alpha, beta);
+    }
+
+    double dnda_sil_smc(double a)       // Weingartner & Draine 2001, ApJ, 548, 296 -- Table 3 p305
+    {
+        const double C = 3.16e-14;
+        const double at = 0.216e-6;
+        const double ac = 0.1e-6;
+        const double alpha = -2.26;
+        const double beta = -3.46;
+        return dnda_grasil(a, C, at, ac, alpha, beta);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -133,14 +157,25 @@ void WeingartnerDraineDustMix::setupSelfBefore()
 {
     MultiGrainDustMix::setupSelfBefore();
 
-    addPopulations(new DraineGraphiteGrainComposition(this), amin_gra, amax_gra,
-                   _environment==Environment::MilkyWay ? &dnda_gra_mwy : &dnda_gra_lmc, _numGraphiteSizes);
-    addPopulations(new DraineSilicateGrainComposition(this), amin_sil, amax_sil,
-                   _environment==Environment::MilkyWay ? &dnda_sil_mwy : &dnda_sil_lmc, _numSilicateSizes);
-    addPopulations(new DraineNeutralPAHGrainComposition(this), amin_pah, amax_pah,
-                   _environment==Environment::MilkyWay ? &dnda_pah_mwy : &dnda_pah_lmc, _numPAHSizes);
-    addPopulations(new DraineIonizedPAHGrainComposition(this), amin_pah, amax_pah,
-                   _environment==Environment::MilkyWay ? &dnda_pah_mwy : &dnda_pah_lmc, _numPAHSizes);
+    switch (_environment)
+    {
+    case WeingartnerDraineDustMix::Environment::MilkyWay:
+        addPopulations(new DraineGraphiteGrainComposition(this), amin_gra, amax_gra, &dnda_gra_mwy , _numGraphiteSizes);
+        addPopulations(new DraineSilicateGrainComposition(this), amin_sil, amax_sil, &dnda_sil_mwy , _numSilicateSizes);
+        addPopulations(new DraineNeutralPAHGrainComposition(this), amin_pah, amax_pah, &dnda_pah_mwy, _numPAHSizes);
+        addPopulations(new DraineIonizedPAHGrainComposition(this), amin_pah, amax_pah, &dnda_pah_mwy, _numPAHSizes);
+        break;
+    case WeingartnerDraineDustMix::Environment::LMC:
+        addPopulations(new DraineGraphiteGrainComposition(this), amin_gra, amax_gra, &dnda_gra_lmc , _numGraphiteSizes);
+        addPopulations(new DraineSilicateGrainComposition(this), amin_sil, amax_sil, &dnda_sil_lmc , _numSilicateSizes);
+        addPopulations(new DraineNeutralPAHGrainComposition(this), amin_pah, amax_pah, &dnda_pah_lmc, _numPAHSizes);
+        addPopulations(new DraineIonizedPAHGrainComposition(this), amin_pah, amax_pah, &dnda_pah_lmc, _numPAHSizes);
+        break;
+    case WeingartnerDraineDustMix::Environment::SMC:
+        addPopulations(new DraineGraphiteGrainComposition(this), amin_gra, amax_gra, &dnda_gra_smc , _numGraphiteSizes);
+        addPopulations(new DraineSilicateGrainComposition(this), amin_sil, amax_sil, &dnda_sil_smc , _numSilicateSizes);
+        break;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////
