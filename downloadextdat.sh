@@ -11,16 +11,16 @@
 # list of archives to be downloaded and extracted (separate filenames with a space)
 FILELIST=( PolarizationProperties.tar.gz FSPSVariableIMFSED.tar.gz )
 
-# download using wget (Linux) or curl (Mac OS X)
+# select download command: wget (Linux) or curl (Mac OS X)
 if which wget >/dev/null
 then
-    DOWNLOAD=wget
+    DOWNLOAD="wget --no-check-certificate https://sciences.ugent.be/skirtextdat/SKIRT8/Resources/"
 elif which curl >/dev/null
 then
-    DOWNLOAD="curl -O"
+    DOWNLOAD="curl --insecure -O https://sciences.ugent.be/skirtextdat/SKIRT8/Resources/"
 else
     echo error: no wget or curl available to download files
-    exit
+    exit 1
 fi
 
 # download and extract each of the files in the list
@@ -32,7 +32,7 @@ do
     echo downloading $FILENAME ...
     mkdir -p ../extdat
     cd ../extdat
-    $DOWNLOAD http://www.skirt.ugent.be/downloads/$FILENAME
+    $DOWNLOAD$FILENAME
     tar -xvf $FILENAME
     rm $FILENAME
     cd ../git
