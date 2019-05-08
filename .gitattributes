@@ -35,8 +35,6 @@
 *.gz binary
 
 # Ignore third-part C code and shell scripts for determining the main project language
-*.c linguist-vendored
-*.h linguist-vendored
-*.cc linguist-vendored
-*.hh linguist-vendored
+FitSKIRT/galib/* linguist-vendored
+SKIRT/fitsio/* linguist-vendored
 *.sh linguist-vendored
