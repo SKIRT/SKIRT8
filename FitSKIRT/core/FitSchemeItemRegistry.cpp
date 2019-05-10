@@ -29,7 +29,7 @@ FitSchemeItemRegistry::FitSchemeItemRegistry(string version, string format)
     // start a new schema
     ItemRegistry::beginSchema("FitSKIRT", "a FitSKIRT parameter file", version, "fski",
                               "skirt-simulation-hierarchy", "FitScheme", format,
-                              "http://www.skirt.ugent.be/skirt");
+                              "http://www.skirt.ugent.be/skirt8");
 
     // add the FitSKIRT unit definitions
     ItemRegistry::addUnitDef<SkirtUnitDef>();
