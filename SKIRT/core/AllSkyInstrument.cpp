@@ -22,10 +22,6 @@ void AllSkyInstrument::setupSelfBefore()
     _Nx = 2 * _numPixelsY;
     _Ny = _numPixelsY;
 
-    // determine linear size of a single pixel
-    // assume: square pixels; fraction of effective pixels pi/4; total area sphere with radius R
-    _s = sqrt(8)*_radius/_numPixelsY;
-
     // unit vectors along x and y axes in the plane normal to the line crosshair-observer
     //              with y-axis oriented along projection of up direction in that plane
     Vec kn(_Ox-_Cx, _Oy-_Cy, _Oz-_Cz);
@@ -87,7 +83,7 @@ Direction AllSkyInstrument::bfkobs(const Position& bfr) const
     double d = k.norm();
 
     // if the distance is very small, return something arbitrary - the photon package will not be detected anyway
-    if (d < _s) return Direction();
+    if (d < _radius) return Direction();
 
     // otherwise return a unit vector in the direction from launch to observer
     return Direction(k/d);
@@ -118,7 +114,7 @@ void AllSkyInstrument::detect(PhotonPackage* pp)
     double d = p.norm();
 
     // if the distance is very small, ignore the photon package
-    if (d < _s) return;
+    if (d < _radius) return;
 
     // otherwise get the spherical coordinates from the normalized launch position
     double inc, azi;
@@ -143,9 +139,7 @@ void AllSkyInstrument::detect(PhotonPackage* pp)
     double L = pp->luminosity() * exp(-taupath);
 
     // adjust the luminosity for the distance from the launch position to the instrument
-    double r = _s / (2.*d);
-    double rar = r / atan(r);
-    L *= rar*rar;
+    L /= d*d;
 
     // add the adjusted luminosity to the appropriate pixel in the data cube
     int ell = pp->ell();
@@ -164,9 +158,13 @@ void AllSkyInstrument::write()
     // Collect the partial data cubes into one big cube at process 0
     std::shared_ptr<Array> completeCube = _ftotv.constructCompleteCube();
 
-    // Multiply each sample by lambda/dlamdba and by the constant factor 1/(4 pi s^2)
+    // Determine the solid angle corresponding to each pixel, assuming an area preserving projection
+    // and a usage fraction in the output rectangle of pi/4
+    double omega = 16. / (_Nx * _Ny);
+
+    // Multiply each sample by lambda/dlamdba and by the constant factor 1/(4 pi Omega)
     // to obtain the surface brightness and convert to output units (such as W/m2/arcsec2)
-    double front = 1. / (4.*M_PI*_s*_s);
+    double front = 1. / (4.*M_PI*omega);
     for (size_t m = 0; m < completeCube->size(); m++)
     {
         size_t ell = m / (_Nx*_Ny);
@@ -175,12 +173,15 @@ void AllSkyInstrument::write()
         (*completeCube)[m] = units->osurfacebrightness(lambda, (*completeCube)[m]*front/dlambda);
     }
 
+    // Determine the scale of the output map axes, i.e. in geographical coordinates
+    double inc = M_PI / _Ny;
+
     // Write a FITS file containing the data cube
     string filename = instrumentName() + "_total";
     string description = "total flux";
     FITSInOut::write(this, description, filename, *completeCube, _Nx, _Ny, Nlambda,
-                     units->olength(_s), units->olength(_s), 0., 0.,
-                     units->usurfacebrightness(), units->ulength());
+                     units->oposangle(inc), units->oposangle(inc), 0., 0.,
+                     units->usurfacebrightness(), units->uposangle());
 }
 
 ////////////////////////////////////////////////////////////////////
